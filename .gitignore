@@ -1,0 +1,40 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# Local properties - TUYỆT ĐỐI không commit
+local.properties
+*.jks
+*.keystore
+
+# Gradle
+.gradle/
+build/
+app/build/
+**/build/
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+.DS_Store
+
+# Kotlin
+*.class
+
+# NDK
+obj/
+
+# Navigation safe args generated
+app/src/main/java/**/NavGraph*.kt

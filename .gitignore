@@ -22,6 +22,7 @@ local.properties
 .gradle/
 build/
 app/build/
+app/google-services.json
 **/build/
 
 # Android Studio

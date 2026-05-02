@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.smartsous.core.common.AuthManager
+import com.example.smartsous.domain.usecase.SeedRecipesUseCase
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,18 +15,26 @@ import javax.inject.Inject
 class SmartSousApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var authManager: AuthManager  // ← thêm dòng này
+    @Inject lateinit var authManager: AuthManager
+    @Inject lateinit var seedRecipesUseCase: SeedRecipesUseCase
 
     override fun onCreate() {
         super.onCreate()
-        // Đăng nhập ẩn danh ngay khi app khởi động
-        // Chạy trên IO thread, không block UI
+
         CoroutineScope(Dispatchers.IO).launch {
+            // Bước 1: Login trước — cần UID để Firestore rules cho phép đọc
             try {
                 authManager.loginAnonymously()
             } catch (e: Exception) {
-                // Sẽ retry lần sau khi user mở lại app
                 android.util.Log.e("SmartSousApp", "Auth lỗi: ${e.message}")
+                return@launch  // Auth thất bại → không seed được
+            }
+
+            // Bước 2: Seed data sau khi đã có auth
+            try {
+                seedRecipesUseCase()
+            } catch (e: Exception) {
+                android.util.Log.e("SmartSousApp", "Seed lỗi: ${e.message}")
             }
         }
     }

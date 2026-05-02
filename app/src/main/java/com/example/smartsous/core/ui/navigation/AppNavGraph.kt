@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.material3.Text
 import com.example.smartsous.feature.home.HomeScreen
+import com.example.smartsous.feature.chatbot.ChatScreen
 
 @Composable
 fun AppNavGraph(
@@ -31,7 +32,7 @@ fun AppNavGraph(
             Text(text = "Planner Screen")
         }
         composable("favorites") {
-            Text(text = "Favorites Screen")
+            ChatScreen(modifier = modifier)
         }
     }
 }

@@ -23,5 +23,5 @@ abstract class BaseViewModel : ViewModel() {
         viewModelScope.launch(exceptionHandler) { block() }
     }
 
-    fun clearError() { _error.value = null }
+    open fun clearError() { _error.value = null }
 }

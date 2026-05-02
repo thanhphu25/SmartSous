@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,12 +15,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,9 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import androidx.compose.ui.unit.sp
+import coil.compose.SubcomposeAsyncImage
 import com.example.smartsous.core.common.Radius
 import com.example.smartsous.core.common.Spacing
 import com.example.smartsous.domain.model.Difficulty
@@ -69,7 +74,7 @@ fun RecipeCard(
         Column {
             // ── Ảnh món ăn ─────────────────────────────────
             Box {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = recipe.imageUrl,
                     contentDescription = recipe.name,
                     contentScale = ContentScale.Crop,
@@ -79,7 +84,43 @@ fun RecipeCard(
                         .clip(RoundedCornerShape(
                             topStart = Radius.lg,
                             topEnd = Radius.lg
-                        ))
+                        )),
+                    loading = {
+                        // Hiện shimmer khi đang tải ảnh (Giả định bạn đã có hàm shimmerBrush())
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(shimmerBrush())
+                        )
+                    },
+                    error = {
+                        // Hiện placeholder khi ảnh lỗi
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "🍽️",
+                                    fontSize = 36.sp
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = recipe.name,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 )
                 // Nút yêu thích góc phải
                 IconButton(
@@ -219,14 +260,35 @@ fun RecipeCardHorizontal(
             modifier = Modifier.padding(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ảnh nhỏ bên trái
-            AsyncImage(
+            // Ảnh nhỏ bên trái với SubcomposeAsyncImage
+            SubcomposeAsyncImage(
                 model = recipe.imageUrl,
                 contentDescription = recipe.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(80.dp)
-                    .clip(RoundedCornerShape(Radius.md))
+                    .clip(RoundedCornerShape(Radius.md)),
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(shimmerBrush())
+                    )
+                },
+                error = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Ảnh 80dp khá nhỏ nên chỉ hiện icon, bỏ text để tránh tràn viền
+                        Text(
+                            text = "🍽️",
+                            fontSize = 24.sp
+                        )
+                    }
+                }
             )
             Spacer(Modifier.width(Spacing.md))
             // Thông tin bên phải

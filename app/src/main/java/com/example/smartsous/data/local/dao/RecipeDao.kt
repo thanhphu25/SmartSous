@@ -31,4 +31,7 @@ interface RecipeDao {
 
     @Query("DELETE FROM recipes WHERE cachedAt < :threshold")
     suspend fun clearStaleCache(threshold: Long)
+
+    @Query("SELECT * FROM recipes LIMIT 1")
+    suspend fun getAllRecipesOneShot(): List<RecipeEntity>
 }

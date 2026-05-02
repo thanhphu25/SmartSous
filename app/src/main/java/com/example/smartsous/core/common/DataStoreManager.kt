@@ -36,4 +36,11 @@ class DataStoreManager @Inject constructor(
             prefs[KEY_RECIPES_SEEDED] = true
         }
     }
+
+    // Thêm vào DataStoreManager.kt
+    suspend fun reset() {
+        context.dataStore.edit { prefs ->
+            prefs.clear()
+        }
+    }
 }

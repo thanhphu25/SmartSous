@@ -3,7 +3,7 @@
     "id": "vn001",
     "name": "Bò xào cà chua",
     "description": "Món xào đậm đà, chua ngọt hài hòa, cơm ăn kèm rất ngon",
-    "imageUrl": "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/urtwux1486983078.jpg",
     "cookingTimeMinutes": 20,
     "servings": 3,
     "difficulty": "EASY",
@@ -25,19 +25,13 @@
       "Cho cà chua và hành tây vào xào cùng 3 phút",
       "Nêm lại gia vị, tắt bếp và thưởng thức"
     ],
-    "nutrition": {
-      "calories": 280,
-      "protein": 28.0,
-      "carbs": 8.0,
-      "fat": 15.0,
-      "fiber": 2.0
-    }
+    "nutrition": {"calories": 280, "protein": 28.0, "carbs": 8.0, "fat": 15.0, "fiber": 2.0}
   },
   {
     "id": "vn002",
     "name": "Canh chua cá lóc",
     "description": "Canh chua đặc trưng miền Nam, vị chua thanh từ me và thơm",
-    "imageUrl": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/g046bb1663960946.jpg",
     "cookingTimeMinutes": 35,
     "servings": 4,
     "difficulty": "MEDIUM",
@@ -50,8 +44,7 @@
       {"name": "Giá đỗ", "amount": 100, "unit": "gram"},
       {"name": "Cà chua", "amount": 2, "unit": "quả"},
       {"name": "Ngò gai", "amount": 1, "unit": "bó"},
-      {"name": "Nước mắm", "amount": 2, "unit": "muỗng"},
-      {"name": "Đường", "amount": 1, "unit": "muỗng"}
+      {"name": "Nước mắm", "amount": 2, "unit": "muỗng"}
     ],
     "steps": [
       "Cá lóc làm sạch, cắt khúc vừa ăn, ướp muối nhẹ",
@@ -61,19 +54,13 @@
       "Cho giá và nêm nước mắm, đường vừa ăn",
       "Tắt bếp, rắc ngò gai thái nhỏ"
     ],
-    "nutrition": {
-      "calories": 195,
-      "protein": 22.0,
-      "carbs": 12.0,
-      "fat": 6.0,
-      "fiber": 3.0
-    }
+    "nutrition": {"calories": 195, "protein": 22.0, "carbs": 12.0, "fat": 6.0, "fiber": 3.0}
   },
   {
     "id": "vn003",
     "name": "Thịt kho tàu",
     "description": "Thịt ba chỉ kho trứng với nước dừa, màu vàng đẹp, mềm tan",
-    "imageUrl": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/1520084413.jpg",
     "cookingTimeMinutes": 60,
     "servings": 4,
     "difficulty": "MEDIUM",
@@ -96,19 +83,13 @@
       "Đổ nước dừa vào, kho lửa vừa 40 phút",
       "Thả trứng vào kho thêm 10 phút đến khi nước sánh lại"
     ],
-    "nutrition": {
-      "calories": 420,
-      "protein": 25.0,
-      "carbs": 10.0,
-      "fat": 32.0,
-      "fiber": 0.5
-    }
+    "nutrition": {"calories": 420, "protein": 25.0, "carbs": 10.0, "fat": 32.0, "fiber": 0.5}
   },
   {
     "id": "vn004",
     "name": "Phở bò",
     "description": "Phở bò truyền thống với nước dùng hầm xương trong veo, thơm lừng",
-    "imageUrl": "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/qqpwsy1511796276.jpg",
     "cookingTimeMinutes": 180,
     "servings": 6,
     "difficulty": "HARD",
@@ -121,10 +102,7 @@
       {"name": "Hành tây", "amount": 2, "unit": "củ"},
       {"name": "Gừng", "amount": 50, "unit": "gram"},
       {"name": "Hồi", "amount": 3, "unit": "cái"},
-      {"name": "Quế", "amount": 1, "unit": "thanh"},
-      {"name": "Nước mắm", "amount": 3, "unit": "muỗng"},
-      {"name": "Giá đỗ", "amount": 100, "unit": "gram"},
-      {"name": "Rau mùi", "amount": 1, "unit": "bó"}
+      {"name": "Nước mắm", "amount": 3, "unit": "muỗng"}
     ],
     "steps": [
       "Xương bò chần qua nước sôi, rửa sạch",
@@ -134,19 +112,13 @@
       "Bánh phở trụng qua nước sôi, xếp vào bát",
       "Chan nước dùng sôi, xếp thịt bò tái lên trên"
     ],
-    "nutrition": {
-      "calories": 380,
-      "protein": 28.0,
-      "carbs": 45.0,
-      "fat": 8.0,
-      "fiber": 2.0
-    }
+    "nutrition": {"calories": 380, "protein": 28.0, "carbs": 45.0, "fat": 8.0, "fiber": 2.0}
   },
   {
     "id": "vn005",
     "name": "Rau muống xào tỏi",
     "description": "Món rau đơn giản, nhanh gọn, xanh giòn thơm tỏi",
-    "imageUrl": "https://images.unsplash.com/photo-1540914124281-342587941389?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wvpsxx1468256321.jpg",
     "cookingTimeMinutes": 10,
     "servings": 2,
     "difficulty": "EASY",
@@ -166,53 +138,13 @@
       "Cho rau vào xào nhanh tay lửa thật lớn 2-3 phút",
       "Nêm nước mắm, đảo đều và tắt bếp ngay"
     ],
-    "nutrition": {
-      "calories": 85,
-      "protein": 3.5,
-      "carbs": 8.0,
-      "fat": 4.5,
-      "fiber": 3.5
-    }
+    "nutrition": {"calories": 85, "protein": 3.5, "carbs": 8.0, "fat": 4.5, "fiber": 3.5}
   },
   {
     "id": "vn006",
-    "name": "Cá kho riềng",
-    "description": "Cá kho đậm đà với riềng thơm nồng, ăn kèm cơm trắng tuyệt vời",
-    "imageUrl": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400",
-    "cookingTimeMinutes": 45,
-    "servings": 3,
-    "difficulty": "MEDIUM",
-    "cuisine": "Việt Nam",
-    "tags": ["kho", "cá", "riềng", "miền bắc", "cơm"],
-    "ingredients": [
-      {"name": "Cá trắm", "amount": 600, "unit": "gram"},
-      {"name": "Riềng", "amount": 50, "unit": "gram"},
-      {"name": "Thịt ba chỉ", "amount": 100, "unit": "gram"},
-      {"name": "Nước mắm", "amount": 3, "unit": "muỗng"},
-      {"name": "Nước màu", "amount": 2, "unit": "muỗng"},
-      {"name": "Ớt", "amount": 2, "unit": "quả"},
-      {"name": "Đường", "amount": 1, "unit": "muỗng"}
-    ],
-    "steps": [
-      "Cá làm sạch, cắt khúc, để ráo",
-      "Riềng giã nhỏ, thịt ba chỉ thái mỏng",
-      "Xếp riềng xuống đáy nồi, xếp cá và thịt lên",
-      "Trộn nước mắm, nước màu, đường rưới đều",
-      "Kho lửa nhỏ 30-40 phút đến khi nước sánh"
-    ],
-    "nutrition": {
-      "calories": 310,
-      "protein": 30.0,
-      "carbs": 6.0,
-      "fat": 18.0,
-      "fiber": 0.5
-    }
-  },
-  {
-    "id": "vn007",
     "name": "Gỏi cuốn tôm thịt",
     "description": "Gỏi cuốn tươi mát với tôm, thịt, rau sống và bánh tráng",
-    "imageUrl": "https://images.unsplash.com/photo-1609501676725-7186f017a4b4?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/ypxvwv1505330810.jpg",
     "cookingTimeMinutes": 30,
     "servings": 4,
     "difficulty": "MEDIUM",
@@ -224,8 +156,7 @@
       {"name": "Bánh tráng", "amount": 12, "unit": "cái"},
       {"name": "Bún", "amount": 100, "unit": "gram"},
       {"name": "Xà lách", "amount": 1, "unit": "bó"},
-      {"name": "Húng quế", "amount": 1, "unit": "bó"},
-      {"name": "Giá đỗ", "amount": 100, "unit": "gram"}
+      {"name": "Húng quế", "amount": 1, "unit": "bó"}
     ],
     "steps": [
       "Tôm luộc chín, bóc vỏ, chẻ đôi",
@@ -233,122 +164,15 @@
       "Bún trụng sơ, để ráo",
       "Nhúng bánh tráng vào nước ấm cho mềm",
       "Xếp rau, bún, tôm, thịt lên bánh tráng và cuốn chặt tay",
-      "Ăn kèm nước chấm mắm me hoặc tương hoisin"
+      "Ăn kèm nước chấm mắm me"
     ],
-    "nutrition": {
-      "calories": 245,
-      "protein": 18.0,
-      "carbs": 30.0,
-      "fat": 5.0,
-      "fiber": 4.0
-    }
+    "nutrition": {"calories": 245, "protein": 18.0, "carbs": 30.0, "fat": 5.0, "fiber": 4.0}
   },
   {
-    "id": "vn008",
-    "name": "Trứng chiên cà chua",
-    "description": "Món trứng chiên đơn giản, nhanh gọn, phù hợp bữa sáng hoặc bữa phụ",
-    "imageUrl": "https://images.unsplash.com/photo-1510693206972-df098062cb71?w=400",
-    "cookingTimeMinutes": 10,
-    "servings": 2,
-    "difficulty": "EASY",
-    "cuisine": "Việt Nam",
-    "tags": ["trứng", "cà chua", "sáng", "nhanh", "đơn giản"],
-    "ingredients": [
-      {"name": "Trứng gà", "amount": 3, "unit": "quả"},
-      {"name": "Cà chua", "amount": 2, "unit": "quả"},
-      {"name": "Hành lá", "amount": 2, "unit": "cây"},
-      {"name": "Dầu ăn", "amount": 1, "unit": "muỗng"},
-      {"name": "Nước mắm", "amount": 0.5, "unit": "muỗng"},
-      {"name": "Muối", "amount": 0.5, "unit": "muỗng cà phê"}
-    ],
-    "steps": [
-      "Đánh trứng với chút muối và hành lá thái nhỏ",
-      "Cà chua cắt múi cau",
-      "Chiên trứng vàng đều, bẻ thành miếng, gắp ra",
-      "Xào cà chua 2 phút, nêm nước mắm",
-      "Cho trứng vào đảo đều, tắt bếp"
-    ],
-    "nutrition": {
-      "calories": 185,
-      "protein": 12.0,
-      "carbs": 7.0,
-      "fat": 12.0,
-      "fiber": 1.5
-    }
-  },
-  {
-    "id": "vn009",
-    "name": "Bún bò Huế",
-    "description": "Bún bò đặc trưng miền Trung, nước dùng cay đậm với sả và mắm ruốc",
-    "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400",
-    "cookingTimeMinutes": 120,
-    "servings": 5,
-    "difficulty": "HARD",
-    "cuisine": "Việt Nam",
-    "tags": ["bún", "bò", "Huế", "cay", "miền trung"],
-    "ingredients": [
-      {"name": "Bắp bò", "amount": 500, "unit": "gram"},
-      {"name": "Giò heo", "amount": 400, "unit": "gram"},
-      {"name": "Bún tươi", "amount": 500, "unit": "gram"},
-      {"name": "Sả", "amount": 4, "unit": "cây"},
-      {"name": "Mắm ruốc Huế", "amount": 2, "unit": "muỗng"},
-      {"name": "Ớt bột", "amount": 2, "unit": "muỗng"},
-      {"name": "Hành tím", "amount": 5, "unit": "củ"}
-    ],
-    "steps": [
-      "Hầm xương bò với sả đập dập 1.5 tiếng",
-      "Bắp bò và giò heo luộc chín, thái lát",
-      "Phi hành tím, cho ớt bột và mắm ruốc xào thơm",
-      "Cho hỗn hợp ớt vào nồi nước dùng, nêm vừa ăn",
-      "Trụng bún, xếp vào bát, thêm thịt và chan nước dùng sôi"
-    ],
-    "nutrition": {
-      "calories": 440,
-      "protein": 32.0,
-      "carbs": 48.0,
-      "fat": 12.0,
-      "fiber": 2.0
-    }
-  },
-  {
-    "id": "vn010",
-    "name": "Đậu phụ sốt cà chua",
-    "description": "Món chay đơn giản, đậu phụ chiên vàng sốt cà chua ngọt chua",
-    "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
-    "cookingTimeMinutes": 20,
-    "servings": 2,
-    "difficulty": "EASY",
-    "cuisine": "Việt Nam",
-    "tags": ["chay", "đậu phụ", "cà chua", "nhanh", "lành mạnh"],
-    "ingredients": [
-      {"name": "Đậu phụ", "amount": 300, "unit": "gram"},
-      {"name": "Cà chua", "amount": 3, "unit": "quả"},
-      {"name": "Hành lá", "amount": 3, "unit": "cây"},
-      {"name": "Tỏi", "amount": 2, "unit": "tép"},
-      {"name": "Dầu ăn", "amount": 3, "unit": "muỗng"},
-      {"name": "Nước mắm", "amount": 1, "unit": "muỗng"},
-      {"name": "Đường", "amount": 0.5, "unit": "muỗng"}
-    ],
-    "steps": [
-      "Đậu phụ cắt miếng vuông, chiên vàng giòn 2 mặt",
-      "Cà chua cắt nhỏ, hành lá thái khúc",
-      "Phi tỏi thơm, cho cà chua vào xào nhừ",
-      "Nêm nước mắm, đường, thêm chút nước",
-      "Cho đậu phụ vào đảo nhẹ, rắc hành lá"
-    ],
-    "nutrition": {
-      "calories": 220,
-      "protein": 14.0,
-      "carbs": 12.0,
-      "fat": 13.0,
-      "fiber": 3.0
-    }
-  },
-  {
-    "id": "vn011",
+    "id": "vn007",
     "name": "Gà kho gừng",
     "description": "Gà kho gừng thơm nồng, nước kho sánh đậm, hao cơm",
-    "imageUrl": "https://images.unsplash.com/photo-1598103442097-8b74394b95c3?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/abc123/chicken-ginger.jpg",
     "cookingTimeMinutes": 40,
     "servings": 3,
     "difficulty": "EASY",
@@ -360,7 +184,6 @@
       {"name": "Nước mắm", "amount": 3, "unit": "muỗng"},
       {"name": "Đường", "amount": 2, "unit": "muỗng"},
       {"name": "Nước màu", "amount": 1, "unit": "muỗng"},
-      {"name": "Ớt", "amount": 1, "unit": "quả"},
       {"name": "Tỏi", "amount": 3, "unit": "tép"}
     ],
     "steps": [
@@ -370,53 +193,93 @@
       "Thêm chút nước, kho lửa vừa 25 phút",
       "Để lửa lớn cho nước sánh lại, thêm ớt"
     ],
-    "nutrition": {
-      "calories": 320,
-      "protein": 30.0,
-      "carbs": 8.0,
-      "fat": 18.0,
-      "fiber": 0.5
-    }
+    "nutrition": {"calories": 320, "protein": 30.0, "carbs": 8.0, "fat": 18.0, "fiber": 0.5}
   },
   {
-    "id": "vn012",
-    "name": "Canh bí đỏ nấu tôm",
-    "description": "Canh bí đỏ ngọt thanh, bổ dưỡng, tôm thêm vị umami",
-    "imageUrl": "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=400",
-    "cookingTimeMinutes": 25,
-    "servings": 4,
+    "id": "vn008",
+    "name": "Trứng chiên cà chua",
+    "description": "Món trứng chiên đơn giản, nhanh gọn, phù hợp bữa sáng",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/tytpwy1489759801.jpg",
+    "cookingTimeMinutes": 10,
+    "servings": 2,
     "difficulty": "EASY",
     "cuisine": "Việt Nam",
-    "tags": ["canh", "bí đỏ", "tôm", "lành mạnh", "gia đình"],
+    "tags": ["trứng", "cà chua", "sáng", "nhanh", "đơn giản"],
     "ingredients": [
-      {"name": "Bí đỏ", "amount": 400, "unit": "gram"},
-      {"name": "Tôm tươi", "amount": 200, "unit": "gram"},
+      {"name": "Trứng gà", "amount": 3, "unit": "quả"},
+      {"name": "Cà chua", "amount": 2, "unit": "quả"},
       {"name": "Hành lá", "amount": 2, "unit": "cây"},
-      {"name": "Nước mắm", "amount": 2, "unit": "muỗng"},
-      {"name": "Muối", "amount": 0.5, "unit": "muỗng cà phê"},
-      {"name": "Hạt nêm", "amount": 1, "unit": "muỗng cà phê"}
+      {"name": "Dầu ăn", "amount": 1, "unit": "muỗng"},
+      {"name": "Nước mắm", "amount": 0.5, "unit": "muỗng"}
     ],
     "steps": [
-      "Bí đỏ gọt vỏ, cắt miếng vừa ăn",
-      "Tôm bóc vỏ, giữ lại đầu để nấu nước dùng",
-      "Xào đầu tôm lấy nước ngọt, lọc bỏ bã",
-      "Cho bí vào nước tôm, nấu 15 phút đến mềm",
-      "Thả tôm vào nấu thêm 3 phút, nêm gia vị",
-      "Rắc hành lá thái nhỏ lên trên"
+      "Đánh trứng với chút muối và hành lá thái nhỏ",
+      "Cà chua cắt múi cau",
+      "Chiên trứng vàng đều, bẻ thành miếng, gắp ra",
+      "Xào cà chua 2 phút, nêm nước mắm",
+      "Cho trứng vào đảo đều, tắt bếp"
     ],
-    "nutrition": {
-      "calories": 145,
-      "protein": 16.0,
-      "carbs": 14.0,
-      "fat": 3.0,
-      "fiber": 2.5
-    }
+    "nutrition": {"calories": 185, "protein": 12.0, "carbs": 7.0, "fat": 12.0, "fiber": 1.5}
   },
   {
-    "id": "vn013",
+    "id": "vn009",
+    "name": "Bún bò Huế",
+    "description": "Bún bò đặc trưng miền Trung, nước dùng cay đậm với sả và mắm ruốc",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/vwwspt1487394060.jpg",
+    "cookingTimeMinutes": 120,
+    "servings": 5,
+    "difficulty": "HARD",
+    "cuisine": "Việt Nam",
+    "tags": ["bún", "bò", "Huế", "cay", "miền trung"],
+    "ingredients": [
+      {"name": "Bắp bò", "amount": 500, "unit": "gram"},
+      {"name": "Giò heo", "amount": 400, "unit": "gram"},
+      {"name": "Bún tươi", "amount": 500, "unit": "gram"},
+      {"name": "Sả", "amount": 4, "unit": "cây"},
+      {"name": "Mắm ruốc Huế", "amount": 2, "unit": "muỗng"},
+      {"name": "Ớt bột", "amount": 2, "unit": "muỗng"}
+    ],
+    "steps": [
+      "Hầm xương bò với sả đập dập 1.5 tiếng",
+      "Bắp bò và giò heo luộc chín, thái lát",
+      "Phi hành tím, cho ớt bột và mắm ruốc xào thơm",
+      "Cho hỗn hợp ớt vào nồi nước dùng, nêm vừa ăn",
+      "Trụng bún, xếp vào bát, thêm thịt và chan nước dùng sôi"
+    ],
+    "nutrition": {"calories": 440, "protein": 32.0, "carbs": 48.0, "fat": 12.0, "fiber": 2.0}
+  },
+  {
+    "id": "vn010",
+    "name": "Đậu phụ sốt cà chua",
+    "description": "Món chay đơn giản, đậu phụ chiên vàng sốt cà chua ngọt chua",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/mlchx21564916263.jpg",
+    "cookingTimeMinutes": 20,
+    "servings": 2,
+    "difficulty": "EASY",
+    "cuisine": "Việt Nam",
+    "tags": ["chay", "đậu phụ", "cà chua", "nhanh", "lành mạnh"],
+    "ingredients": [
+      {"name": "Đậu phụ", "amount": 300, "unit": "gram"},
+      {"name": "Cà chua", "amount": 3, "unit": "quả"},
+      {"name": "Hành lá", "amount": 3, "unit": "cây"},
+      {"name": "Tỏi", "amount": 2, "unit": "tép"},
+      {"name": "Dầu ăn", "amount": 3, "unit": "muỗng"},
+      {"name": "Nước mắm", "amount": 1, "unit": "muỗng"}
+    ],
+    "steps": [
+      "Đậu phụ cắt miếng vuông, chiên vàng giòn 2 mặt",
+      "Cà chua cắt nhỏ, hành lá thái khúc",
+      "Phi tỏi thơm, cho cà chua vào xào nhừ",
+      "Nêm nước mắm, đường, thêm chút nước",
+      "Cho đậu phụ vào đảo nhẹ, rắc hành lá"
+    ],
+    "nutrition": {"calories": 220, "protein": 14.0, "carbs": 12.0, "fat": 13.0, "fiber": 3.0}
+  },
+  {
+    "id": "vn011",
     "name": "Thịt heo luộc",
     "description": "Thịt heo luộc đơn giản, chấm mắm gừng hoặc nước mắm tỏi ớt",
-    "imageUrl": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/1520081877.jpg",
     "cookingTimeMinutes": 40,
     "servings": 4,
     "difficulty": "EASY",
@@ -427,8 +290,7 @@
       {"name": "Gừng", "amount": 30, "unit": "gram"},
       {"name": "Hành tím", "amount": 2, "unit": "củ"},
       {"name": "Muối", "amount": 1, "unit": "muỗng"},
-      {"name": "Nước mắm", "amount": 2, "unit": "muỗng"},
-      {"name": "Chanh", "amount": 1, "unit": "quả"}
+      {"name": "Nước mắm", "amount": 2, "unit": "muỗng"}
     ],
     "steps": [
       "Đun nước sôi với gừng đập dập, hành tím và muối",
@@ -437,19 +299,13 @@
       "Pha nước chấm: nước mắm, gừng bào, ớt, chanh",
       "Xếp thịt ra đĩa, dùng kèm rau sống"
     ],
-    "nutrition": {
-      "calories": 350,
-      "protein": 26.0,
-      "carbs": 2.0,
-      "fat": 26.0,
-      "fiber": 0.0
-    }
+    "nutrition": {"calories": 350, "protein": 26.0, "carbs": 2.0, "fat": 26.0, "fiber": 0.0}
   },
   {
-    "id": "vn014",
+    "id": "vn012",
     "name": "Cơm chiên dương châu",
     "description": "Cơm chiên màu vàng đẹp với tôm, giò, trứng và rau đậu hà lan",
-    "imageUrl": "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/wqurxy1511453156.jpg",
     "cookingTimeMinutes": 20,
     "servings": 2,
     "difficulty": "EASY",
@@ -461,9 +317,7 @@
       {"name": "Tôm tươi", "amount": 100, "unit": "gram"},
       {"name": "Giò lụa", "amount": 50, "unit": "gram"},
       {"name": "Đậu hà lan", "amount": 50, "unit": "gram"},
-      {"name": "Dầu ăn", "amount": 3, "unit": "muỗng"},
-      {"name": "Nước tương", "amount": 2, "unit": "muỗng"},
-      {"name": "Hành lá", "amount": 2, "unit": "cây"}
+      {"name": "Nước tương", "amount": 2, "unit": "muỗng"}
     ],
     "steps": [
       "Tôm bóc vỏ, giò cắt hạt lựu, đậu hà lan trụng sơ",
@@ -473,19 +327,40 @@
       "Thêm trứng, đậu hà lan, nêm nước tương",
       "Đảo đều 2 phút, rắc hành lá và tiêu"
     ],
-    "nutrition": {
-      "calories": 480,
-      "protein": 22.0,
-      "carbs": 58.0,
-      "fat": 16.0,
-      "fiber": 3.0
-    }
+    "nutrition": {"calories": 480, "protein": 22.0, "carbs": 58.0, "fat": 16.0, "fiber": 3.0}
   },
   {
-    "id": "vn015",
+    "id": "vn013",
+    "name": "Canh bí đỏ tôm",
+    "description": "Canh bí đỏ ngọt thanh, bổ dưỡng, tôm thêm vị umami",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/qptpvt1487339892.jpg",
+    "cookingTimeMinutes": 25,
+    "servings": 4,
+    "difficulty": "EASY",
+    "cuisine": "Việt Nam",
+    "tags": ["canh", "bí đỏ", "tôm", "lành mạnh", "gia đình"],
+    "ingredients": [
+      {"name": "Bí đỏ", "amount": 400, "unit": "gram"},
+      {"name": "Tôm tươi", "amount": 200, "unit": "gram"},
+      {"name": "Hành lá", "amount": 2, "unit": "cây"},
+      {"name": "Nước mắm", "amount": 2, "unit": "muỗng"},
+      {"name": "Hạt nêm", "amount": 1, "unit": "muỗng cà phê"}
+    ],
+    "steps": [
+      "Bí đỏ gọt vỏ, cắt miếng vừa ăn",
+      "Tôm bóc vỏ, giữ lại đầu để nấu nước dùng",
+      "Xào đầu tôm lấy nước ngọt, lọc bỏ bã",
+      "Cho bí vào nước tôm, nấu 15 phút đến mềm",
+      "Thả tôm vào nấu thêm 3 phút, nêm gia vị",
+      "Rắc hành lá thái nhỏ lên trên"
+    ],
+    "nutrition": {"calories": 145, "protein": 16.0, "carbs": 14.0, "fat": 3.0, "fiber": 2.5}
+  },
+  {
+    "id": "vn014",
     "name": "Lẩu thái hải sản",
     "description": "Lẩu Thái cay chua thơm sả ớt với hải sản tươi phong phú",
-    "imageUrl": "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=400",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/uwxqwy1483389553.jpg",
     "cookingTimeMinutes": 45,
     "servings": 4,
     "difficulty": "MEDIUM",
@@ -497,10 +372,7 @@
       {"name": "Ngao", "amount": 300, "unit": "gram"},
       {"name": "Sả", "amount": 3, "unit": "cây"},
       {"name": "Ớt tươi", "amount": 4, "unit": "quả"},
-      {"name": "Nước cốt chanh", "amount": 3, "unit": "muỗng"},
-      {"name": "Nước mắm", "amount": 3, "unit": "muỗng"},
-      {"name": "Lá chanh", "amount": 5, "unit": "lá"},
-      {"name": "Cà chua", "amount": 2, "unit": "quả"}
+      {"name": "Nước cốt chanh", "amount": 3, "unit": "muỗng"}
     ],
     "steps": [
       "Nấu nước dùng với sả đập dập, lá chanh, ớt 20 phút",
@@ -509,12 +381,33 @@
       "Đặt nồi lẩu lên bàn, cho hải sản vào nhúng chín",
       "Ăn kèm bún, rau muống, giá đỗ"
     ],
-    "nutrition": {
-      "calories": 260,
-      "protein": 32.0,
-      "carbs": 14.0,
-      "fat": 7.0,
-      "fiber": 3.0
-    }
+    "nutrition": {"calories": 260, "protein": 32.0, "carbs": 14.0, "fat": 7.0, "fiber": 3.0}
+  },
+  {
+    "id": "vn015",
+    "name": "Cá kho riềng",
+    "description": "Cá kho đậm đà với riềng thơm nồng, ăn kèm cơm trắng tuyệt vời",
+    "imageUrl": "https://www.themealdb.com/images/media/meals/usywpp1511189717.jpg",
+    "cookingTimeMinutes": 45,
+    "servings": 3,
+    "difficulty": "MEDIUM",
+    "cuisine": "Việt Nam",
+    "tags": ["kho", "cá", "riềng", "miền bắc", "cơm"],
+    "ingredients": [
+      {"name": "Cá trắm", "amount": 600, "unit": "gram"},
+      {"name": "Riềng", "amount": 50, "unit": "gram"},
+      {"name": "Thịt ba chỉ", "amount": 100, "unit": "gram"},
+      {"name": "Nước mắm", "amount": 3, "unit": "muỗng"},
+      {"name": "Nước màu", "amount": 2, "unit": "muỗng"},
+      {"name": "Ớt", "amount": 2, "unit": "quả"}
+    ],
+    "steps": [
+      "Cá làm sạch, cắt khúc, để ráo",
+      "Riềng giã nhỏ, thịt ba chỉ thái mỏng",
+      "Xếp riềng xuống đáy nồi, xếp cá và thịt lên",
+      "Trộn nước mắm, nước màu, đường rưới đều",
+      "Kho lửa nhỏ 30-40 phút đến khi nước sánh"
+    ],
+    "nutrition": {"calories": 310, "protein": 30.0, "carbs": 6.0, "fat": 18.0, "fiber": 0.5}
   }
 ]

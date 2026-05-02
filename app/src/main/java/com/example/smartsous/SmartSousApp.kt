@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.smartsous.core.common.AuthManager
+import com.example.smartsous.core.common.DataStoreManager
 import com.example.smartsous.domain.usecase.SeedRecipesUseCase
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -18,10 +19,13 @@ class SmartSousApp : Application(), Configuration.Provider {
     @Inject lateinit var authManager: AuthManager
     @Inject lateinit var seedRecipesUseCase: SeedRecipesUseCase
 
+    //@Inject lateinit var dataStoreManager: DataStoreManager
+
     override fun onCreate() {
         super.onCreate()
 
         CoroutineScope(Dispatchers.IO).launch {
+//            dataStoreManager.reset() //khi cần reset file recipes_seed.json
             // Bước 1: Login trước — cần UID để Firestore rules cho phép đọc
             try {
                 authManager.loginAnonymously()

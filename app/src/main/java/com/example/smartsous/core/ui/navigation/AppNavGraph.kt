@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.material3.Text
+import com.example.smartsous.feature.home.HomeScreen
 
 @Composable
 fun AppNavGraph(
@@ -18,7 +19,7 @@ fun AppNavGraph(
         modifier = modifier
     ) {
         composable("home") {
-            Text(text = "Home Screen")
+            HomeScreen(modifier = modifier)
         }
         composable("pantry") {
             Text(text = "Pantry Screen")

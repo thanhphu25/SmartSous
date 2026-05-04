@@ -5,6 +5,8 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.smartsous.core.common.AuthManager
 import com.example.smartsous.core.common.DataStoreManager
+import com.example.smartsous.core.notification.NotificationChannels
+import com.example.smartsous.core.notification.WorkerScheduler
 import com.example.smartsous.domain.usecase.SeedRecipesUseCase
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -20,9 +22,16 @@ class SmartSousApp : Application(), Configuration.Provider {
     @Inject lateinit var seedRecipesUseCase: SeedRecipesUseCase
 
     //@Inject lateinit var dataStoreManager: DataStoreManager
+    @Inject lateinit var workerScheduler: WorkerScheduler
 
     override fun onCreate() {
         super.onCreate()
+
+        // 1. Tạo notification channels (phải làm trước khi gửi bất kỳ notification nào)
+        NotificationChannels.createAll(this)
+
+        // 2. Schedule workers
+        workerScheduler.scheduleAll()
 
         CoroutineScope(Dispatchers.IO).launch {
 //            dataStoreManager.reset() //khi cần reset file recipes_seed.json

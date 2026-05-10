@@ -56,7 +56,12 @@ fun AppNavGraph(
             HomeScreen(modifier = modifier)
         }
         composable("search") {
-            SearchScreen(modifier = modifier)
+            SearchScreen(
+                modifier = modifier,
+                onRecipeClick = { recipeId ->
+                    // TODO: navigate to RecipeDetail tuần 2
+                }
+            )
         }
         composable("planner") {
             PlannerScreen(modifier = modifier)

@@ -10,8 +10,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.smartsous.core.ui.navigation.AppNavGraph
 import com.example.smartsous.core.ui.navigation.SmartSousBottomBar
@@ -21,28 +23,31 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class SmartSousActivity : ComponentActivity() {
 
-    // Launcher xin quyền notification
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        android.util.Log.d("Permission",
-            if (isGranted) "Notification permission granted"
-            else "Notification permission denied"
-        )
-    }
+    ) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Xin quyền notification ngay khi app mở
         requestNotificationPermission()
 
         setContent {
             SmartSousTheme {
                 val navController = rememberNavController()
+                val navBackStack by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStack?.destination?.route
+
+                // Các route KHÔNG hiện bottom bar
+                val hideBottomBarRoutes = listOf("splash", "onboarding")
+                val showBottomBar = currentRoute !in hideBottomBarRoutes
+
                 Scaffold(
-                    bottomBar = { SmartSousBottomBar(navController) }
+                    bottomBar = {
+                        if (showBottomBar) {
+                            SmartSousBottomBar(navController)
+                        }
+                    }
                 ) { innerPadding ->
                     AppNavGraph(
                         navController = navController,
@@ -54,7 +59,6 @@ class SmartSousActivity : ComponentActivity() {
     }
 
     private fun requestNotificationPermission() {
-        // Chỉ cần xin từ Android 13 trở lên
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permission = Manifest.permission.POST_NOTIFICATIONS
             if (ContextCompat.checkSelfPermission(this, permission)

@@ -22,6 +22,7 @@ class DataStoreManager @Inject constructor(
 ) {
     companion object {
         val KEY_RECIPES_SEEDED = booleanPreferencesKey("recipes_seeded")
+        val KEY_ONBOARDING_DONE   = booleanPreferencesKey("onboarding_done")
     }
 
     // Đọc flag đã seed chưa
@@ -34,6 +35,17 @@ class DataStoreManager @Inject constructor(
     suspend fun markRecipesSeeded() {
         context.dataStore.edit { prefs ->
             prefs[KEY_RECIPES_SEEDED] = true
+        }
+    }
+
+    suspend fun isOnboardingDone(): Boolean =
+        context.dataStore.data
+            .map { it[KEY_ONBOARDING_DONE] ?: false }
+            .first()
+
+    suspend fun markOnboardingDone() {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_ONBOARDING_DONE] = true
         }
     }
 

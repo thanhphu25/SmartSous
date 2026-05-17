@@ -15,6 +15,8 @@ import com.example.smartsous.feature.pantry.PantryScreen
 import com.example.smartsous.feature.planner.PlannerScreen
 import com.example.smartsous.feature.recipedetail.RecipeDetailScreen
 import com.example.smartsous.feature.search.SearchScreen
+import com.example.smartsous.feature.favorites.FavoritesScreen
+import com.example.smartsous.feature.pantry.PantryScreen
 
 @Composable
 fun AppNavGraph(
@@ -70,8 +72,20 @@ fun AppNavGraph(
         }
 
         composable("planner") { PlannerScreen(modifier) }
-        composable("pantry")  { PantryScreen(modifier)  }
-        composable("favorites") { ChatScreen(modifier)  }
+        composable("pantry") {
+            PantryScreen(modifier = modifier)
+        }
+        composable("favorites") {
+            FavoritesScreen(
+                modifier = modifier,
+                onRecipeClick = { recipeId ->
+                    navController.navigate("recipe/$recipeId")
+                },
+                onNavigateToSearch = {
+                    navController.navigate("search")
+                }
+            )
+        }
 
         // Route RecipeDetail — nhận recipeId từ argument
         composable(

@@ -21,7 +21,11 @@ sealed class Screen(val route: String, val label: String, val icon: @Composable 
     object Pantry : Screen("pantry", "Pantry", { Icon(Icons.Default.Kitchen, contentDescription = null) })
     object Search : Screen("search", "Search", { Icon(Icons.Default.Search, contentDescription = null) })
     object Planner : Screen("planner", "Planner", { Icon(Icons.Default.Schedule, contentDescription = null) })
-    object Favorites : Screen("favorites", "Favorites", { Icon(Icons.Default.Favorite, contentDescription = null) })
+    object Favorites : Screen(
+        "favorites",
+        "Yêu thích",
+        { Icon(Icons.Default.Favorite, contentDescription = null) }
+    )
 }
 
 @Composable

@@ -39,8 +39,12 @@ class SmartSousActivity : ComponentActivity() {
                 val currentRoute = navBackStack?.destination?.route
 
                 // Các route KHÔNG hiện bottom bar
-                val hideBottomBarRoutes = listOf("splash", "onboarding")
-                val showBottomBar = currentRoute !in hideBottomBarRoutes
+                val hideBottomBarRoutes = listOf("splash", "onboarding", "recipe/{recipeId}")
+
+// Dùng startsWith để catch mọi recipeId
+                val showBottomBar = hideBottomBarRoutes.none { route ->
+                    currentRoute == route || currentRoute?.startsWith("recipe/") == true
+                }
 
                 Scaffold(
                     bottomBar = {

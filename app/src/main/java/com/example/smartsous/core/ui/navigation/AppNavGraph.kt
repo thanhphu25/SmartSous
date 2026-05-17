@@ -3,14 +3,17 @@ package com.example.smartsous.core.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.smartsous.feature.chatbot.ChatScreen
 import com.example.smartsous.feature.home.HomeScreen
 import com.example.smartsous.feature.onboarding.OnboardingScreen
 import com.example.smartsous.feature.onboarding.SplashScreen
 import com.example.smartsous.feature.pantry.PantryScreen
 import com.example.smartsous.feature.planner.PlannerScreen
+import com.example.smartsous.feature.recipedetail.RecipeDetailScreen
 import com.example.smartsous.feature.search.SearchScreen
 
 @Composable
@@ -20,11 +23,9 @@ fun AppNavGraph(
 ) {
     NavHost(
         navController = navController,
-        // Splash là điểm bắt đầu
         startDestination = "splash",
         modifier = modifier
     ) {
-        // Splash — không có bottom bar
         composable("splash") {
             SplashScreen(
                 onNavigateToOnboarding = {
@@ -40,7 +41,6 @@ fun AppNavGraph(
             )
         }
 
-        // Onboarding — không có bottom bar
         composable("onboarding") {
             OnboardingScreen(
                 onFinish = {
@@ -51,26 +51,40 @@ fun AppNavGraph(
             )
         }
 
-        // 5 tab chính
         composable("home") {
-            HomeScreen(modifier = modifier)
+            HomeScreen(
+                modifier = modifier,
+                onRecipeClick = { recipeId ->
+                    navController.navigate("recipe/$recipeId")
+                }
+            )
         }
+
         composable("search") {
             SearchScreen(
                 modifier = modifier,
                 onRecipeClick = { recipeId ->
-                    // TODO: navigate to RecipeDetail tuần 2
+                    navController.navigate("recipe/$recipeId")
                 }
             )
         }
-        composable("planner") {
-            PlannerScreen(modifier = modifier)
-        }
-        composable("pantry") {
-            PantryScreen(modifier = modifier)
-        }
-        composable("favorites") {
-            ChatScreen(modifier = modifier)
+
+        composable("planner") { PlannerScreen(modifier) }
+        composable("pantry")  { PantryScreen(modifier)  }
+        composable("favorites") { ChatScreen(modifier)  }
+
+        // Route RecipeDetail — nhận recipeId từ argument
+        composable(
+            route = "recipe/{recipeId}",
+            arguments = listOf(
+                navArgument("recipeId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val recipeId = backStackEntry.arguments?.getString("recipeId") ?: return@composable
+            RecipeDetailScreen(
+                recipeId = recipeId,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

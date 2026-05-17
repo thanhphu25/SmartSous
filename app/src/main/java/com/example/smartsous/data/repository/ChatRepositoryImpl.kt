@@ -4,6 +4,7 @@ import com.example.smartsous.data.local.dao.ChatMessageDao
 import com.example.smartsous.data.local.entity.ChatMessageEntity
 import com.example.smartsous.data.remote.GeminiDataSource
 import com.example.smartsous.domain.model.ChatMessage
+import com.example.smartsous.domain.model.Ingredient
 import com.example.smartsous.domain.model.MessageRole
 import com.example.smartsous.domain.repository.IChatRepository
 import kotlinx.coroutines.flow.Flow
@@ -21,8 +22,14 @@ class ChatRepositoryImpl @Inject constructor(
     // Delegate thẳng sang GeminiDataSource
     override fun streamChat(
         userMessage: String,
-        systemContext: String
-    ): Flow<String> = geminiDataSource.streamChat(userMessage, systemContext)
+        systemContext: String,
+        pantryIngredients: List<Ingredient>,
+        chatHistory: List<ChatMessage>
+    ): Flow<String> = geminiDataSource.streamChat(
+        userMessage = userMessage,
+        pantryIngredients = pantryIngredients,
+        chatHistory = chatHistory
+    )
 
     override suspend fun saveMessage(message: ChatMessage) {
         chatMessageDao.insert(message.toEntity())

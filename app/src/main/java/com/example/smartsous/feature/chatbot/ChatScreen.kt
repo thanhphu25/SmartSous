@@ -56,7 +56,13 @@ import com.example.smartsous.domain.model.ChatMessage
 import com.example.smartsous.domain.model.MessageRole
 import com.example.smartsous.ui.theme.Purple400
 import com.example.smartsous.ui.theme.Purple50
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 
+// Thêm vào Column chính, giữa LazyColumn và Row input:
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
@@ -66,51 +72,88 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
-    // Auto scroll xuống cuối khi có tin nhắn mới hoặc stream
     LaunchedEffect(uiState.messages.size, uiState.streamingText) {
         val totalItems = uiState.messages.size +
-                (if (uiState.streamingText.isNotEmpty()) 1 else 0) +
-                (if (uiState.isTyping && uiState.streamingText.isEmpty()) 1 else 0)
-        if (totalItems > 0) {
-            listState.animateScrollToItem(totalItems - 1)
-        }
+                if (uiState.streamingText.isNotEmpty()) 1 else 0 +
+                        if (uiState.isTyping && uiState.streamingText.isEmpty()) 1 else 0
+        if (totalItems > 0) listState.animateScrollToItem(totalItems - 1)
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .imePadding()   // đẩy content lên khi bàn phím hiện
+        modifier = modifier.fillMaxSize().imePadding()
     ) {
-        // ── Danh sách tin nhắn ──────────────────────────────
+
+        // Danh sách tin nhắn
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Padding top
             item { Spacer(Modifier.size(8.dp)) }
 
-            // Tin nhắn đã hoàn chỉnh
             items(uiState.messages) { message ->
                 MessageBubble(message = message)
             }
 
-            // Streaming bubble — hiện text đang stream về
             if (uiState.streamingText.isNotEmpty()) {
-                item {
-                    StreamingBubble(text = uiState.streamingText)
-                }
+                item { StreamingBubble(text = uiState.streamingText) }
             }
 
-            // Typing indicator — 3 chấm nhảy khi chờ response đầu tiên
             if (uiState.isTyping && uiState.streamingText.isEmpty()) {
+                item { TypingIndicator() }
+            }
+
+            // Error message
+            if (uiState.errorMessage != null) {
                 item {
-                    TypingIndicator()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = uiState.errorMessage!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
 
-            // Padding bottom
             item { Spacer(Modifier.size(8.dp)) }
+        }
+
+        // ── Quick Reply Chips ─────────────────────────────────
+        if (uiState.quickReplies.isNotEmpty() && !uiState.isTyping) {
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                uiState.quickReplies.forEach { reply ->
+                    SuggestionChip(
+                        onClick = {
+                            viewModel.sendMessage(reply)
+                        },
+                        label = {
+                            Text(
+                                reply,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = Purple400.copy(alpha = 0.1f)
+                        ),
+                        border = SuggestionChipDefaults.suggestionChipBorder(
+                            enabled = true,
+                            borderColor = Purple400.copy(alpha = 0.3f)
+                        )
+                    )
+                }
+            }
         }
 
         // ── Input box ────────────────────────────────────────
@@ -130,8 +173,10 @@ fun ChatScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(
                     onSend = {
-                        viewModel.sendMessage(inputText)
-                        inputText = ""
+                        if (inputText.isNotBlank()) {
+                            viewModel.sendMessage(inputText)
+                            inputText = ""
+                        }
                     }
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -140,11 +185,12 @@ fun ChatScreen(
                 )
             )
             Spacer(Modifier.width(8.dp))
-            // Nút gửi
             IconButton(
                 onClick = {
-                    viewModel.sendMessage(inputText)
-                    inputText = ""
+                    if (inputText.isNotBlank()) {
+                        viewModel.sendMessage(inputText)
+                        inputText = ""
+                    }
                 },
                 enabled = inputText.isNotBlank() && !uiState.isTyping,
                 colors = IconButtonDefaults.iconButtonColors(
@@ -152,9 +198,7 @@ fun ChatScreen(
                     contentColor = Color.White,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
+                modifier = Modifier.size(50.dp).clip(CircleShape)
             ) {
                 Icon(Icons.Default.Send, contentDescription = "Gửi")
             }

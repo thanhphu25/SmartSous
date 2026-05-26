@@ -1,6 +1,7 @@
 package com.example.smartsous
 
 import android.app.Application
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.smartsous.core.common.AuthManager
@@ -8,6 +9,7 @@ import com.example.smartsous.core.common.DataStoreManager
 import com.example.smartsous.core.notification.NotificationChannels
 import com.example.smartsous.core.notification.WorkerScheduler
 import com.example.smartsous.domain.usecase.SeedRecipesUseCase
+import com.example.smartsous.domain.usecase.SyncPantryUseCase
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,30 +26,35 @@ class SmartSousApp : Application(), Configuration.Provider {
     //@Inject lateinit var dataStoreManager: DataStoreManager
     @Inject lateinit var workerScheduler: WorkerScheduler
 
+    @Inject lateinit var syncPantryUseCase: SyncPantryUseCase
+
     override fun onCreate() {
         super.onCreate()
 
-        // 1. Tạo notification channels (phải làm trước khi gửi bất kỳ notification nào)
         NotificationChannels.createAll(this)
-
-        // 2. Schedule workers
         workerScheduler.scheduleAll()
 
         CoroutineScope(Dispatchers.IO).launch {
-//            dataStoreManager.reset() //khi cần reset file recipes_seed.json
-            // Bước 1: Login trước — cần UID để Firestore rules cho phép đọc
             try {
                 authManager.loginAnonymously()
             } catch (e: Exception) {
-                android.util.Log.e("SmartSousApp", "Auth lỗi: ${e.message}")
-                return@launch  // Auth thất bại → không seed được
+                Log.e("SmartSousApp", "Auth lỗi: ${e.message}")
+                return@launch
             }
 
-            // Bước 2: Seed data sau khi đã có auth
-            try {
-                seedRecipesUseCase()
-            } catch (e: Exception) {
-                android.util.Log.e("SmartSousApp", "Seed lỗi: ${e.message}")
+            // Chạy song song — không cần đợi nhau
+            launch {
+                try { seedRecipesUseCase() }
+                catch (e: Exception) {
+                    Log.e("SmartSousApp", "Seed lỗi: ${e.message}")
+                }
+            }
+
+            launch {
+                try { syncPantryUseCase() }  // ← thêm
+                catch (e: Exception) {
+                    Log.e("SmartSousApp", "Pantry sync lỗi: ${e.message}")
+                }
             }
         }
     }

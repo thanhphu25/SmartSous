@@ -25,4 +25,10 @@ interface IngredientDao {
 
     @Query("UPDATE pantry_ingredients SET quantity = :qty WHERE id = :id")
     suspend fun updateQuantity(id: String, qty: Double)
+
+    @Query("SELECT * FROM pantry_ingredients WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): IngredientEntity?
+
+    @Query("SELECT * FROM pantry_ingredients")
+    suspend fun getAllOnce(): List<IngredientEntity>
 }

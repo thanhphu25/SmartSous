@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -74,7 +75,8 @@ fun AddEditIngredientSheet(
     onCategoryChange: (IngredientCategory) -> Unit,
     onExpiryDateChange: (LocalDate?) -> Unit,
     onSave: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onScanBarcode: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -124,6 +126,16 @@ fun AddEditIngredientSheet(
                 placeholder = { Text("VD: Cà chua, Thịt bò...") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                trailingIcon = {
+                    // Nút quét barcode
+                    IconButton(onClick = onScanBarcode) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.QrCodeScanner,
+                            contentDescription = "Quét barcode",
+                            tint = Purple400
+                        )
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Purple400
                 )

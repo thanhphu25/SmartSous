@@ -74,6 +74,7 @@ private val categoryFilters = listOf(
 @Composable
 fun PantryScreen(
     modifier: Modifier = Modifier,
+    onNavigateToScan: () -> Unit = {},
     viewModel: PantryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -252,7 +253,13 @@ fun PantryScreen(
                 onCategoryChange = viewModel::onCategoryChange,
                 onExpiryDateChange = viewModel::onExpiryDateChange,
                 onSave = viewModel::saveIngredient,
-                onDismiss = viewModel::closeSheet
+                onDismiss = viewModel::closeSheet,
+                onScanBarcode = {
+                    viewModel.closeSheet()
+                    // Navigate sang màn hình scan
+                    // Dùng callback để tránh phụ thuộc navController trong composable
+                    onNavigateToScan()
+                }
             )
         }
     }

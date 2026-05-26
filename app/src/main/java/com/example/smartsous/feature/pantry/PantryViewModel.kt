@@ -164,4 +164,9 @@ class PantryViewModel @Inject constructor(
             pantryRepository.delete(ingredient)
         }
     }
+
+    fun openAddSheetWithName(name: String) {
+        _formState.value = IngredientFormState(name = name)
+        _showAddEditSheet.value = true
+    }
 }

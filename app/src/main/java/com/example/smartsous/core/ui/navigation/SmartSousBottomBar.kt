@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -26,6 +27,11 @@ sealed class Screen(val route: String, val label: String, val icon: @Composable 
         "Yêu thích",
         { Icon(Icons.Default.Favorite, contentDescription = null) }
     )
+    object Settings : Screen(
+        "settings",
+        "Cài đặt",
+        { Icon(Icons.Default.Settings, contentDescription = null) }
+    )
 }
 
 @Composable
@@ -35,7 +41,8 @@ fun SmartSousBottomBar(navController: NavController) {
         Screen.Pantry,
         Screen.Search,
         Screen.Planner,
-        Screen.Favorites
+        Screen.Favorites,
+        Screen.Settings
     )
     NavigationBar {
         val navBackStackEntry by navController.currentBackStackEntryAsState()

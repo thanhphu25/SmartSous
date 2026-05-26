@@ -21,7 +21,7 @@ import com.example.smartsous.feature.favorites.FavoritesScreen
 import com.example.smartsous.feature.pantry.PantryScreen
 import com.example.smartsous.feature.pantry.BarcodeScanScreen
 import com.example.smartsous.feature.pantry.PantryViewModel
-
+import com.example.smartsous.feature.settings.SettingsScreen
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
@@ -140,6 +140,10 @@ fun AppNavGraph(
                 },
                 onBack = { navController.popBackStack() }
             )
+        }
+
+        composable("settings") {
+            SettingsScreen(modifier = modifier)
         }
     }
 }

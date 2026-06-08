@@ -10,11 +10,10 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(
     private val auth: FirebaseAuth
 ) {
-    // User hiện tại — null nếu chưa đăng nhập
     val currentUser: FirebaseUser? get() = auth.currentUser
 
-    // UID dùng để xây path Firestore: /users/{uid}/pantry/...
-    // Throw exception nếu chưa login — bắt buộc loginAnonymously() trước
+    // Firestore path:/users/{uid}/pantry/...
+    // Firebase Auth loginAnonymously()
     val uid: String get() = auth.currentUser?.uid
         ?: error("User chưa đăng nhập — gọi loginAnonymously() trước")
 

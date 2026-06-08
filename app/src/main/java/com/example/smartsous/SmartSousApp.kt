@@ -2,6 +2,7 @@ package com.example.smartsous
 
 import android.app.Application
 import android.util.Log
+import androidx.datastore.dataStore
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.smartsous.core.common.AuthManager
@@ -23,7 +24,7 @@ class SmartSousApp : Application(), Configuration.Provider {
     @Inject lateinit var authManager: AuthManager
     @Inject lateinit var seedRecipesUseCase: SeedRecipesUseCase
 
-    //@Inject lateinit var dataStoreManager: DataStoreManager
+    @Inject lateinit var dataStoreManager: DataStoreManager //to reset first time
     @Inject lateinit var workerScheduler: WorkerScheduler
 
     @Inject lateinit var syncPantryUseCase: SyncPantryUseCase
@@ -41,6 +42,8 @@ class SmartSousApp : Application(), Configuration.Provider {
                 Log.e("SmartSousApp", "Auth lỗi: ${e.message}")
                 return@launch
             }
+
+            // dataStoreManager.reset()
 
             // Chạy song song — không cần đợi nhau
             launch {

@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// ViewModel base mà mọi ViewModel kế thừa
+// ViewModel base
 abstract class BaseViewModel : ViewModel() {
 
     // Global error state mọi screen đều có thể dùng

@@ -116,7 +116,9 @@ fun AppNavGraph(
         }
 
         composable("chat") {
-            ChatScreen(/*modifier = modifier*/)
+            ChatScreen(
+                onBack = { navController.popBackStack() } // Báo cho NavController lùi lại 1 bước
+            )
         }
 
         // Route RecipeDetail — nhận recipeId từ argument

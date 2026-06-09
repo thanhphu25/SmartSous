@@ -70,12 +70,15 @@ import com.example.smartsous.domain.model.SuggestedRecipe
 import com.example.smartsous.ui.theme.Amber400
 import com.example.smartsous.ui.theme.Purple400
 import com.example.smartsous.ui.theme.Teal400
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.IconButton
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
     onRecipeClick: (String) -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,7 +97,26 @@ fun ChatScreen(
             .fillMaxSize()
             .imePadding()
     ) {
-
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Icon mũi tên quay lại
+                    contentDescription = "Quay lại",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = "Trợ lý AI SmartSous",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
         // ── Message list ──────────────────────────────────────
         LazyColumn(
             state = listState,

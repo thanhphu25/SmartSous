@@ -72,6 +72,8 @@ import com.example.smartsous.ui.theme.Purple400
 import com.example.smartsous.ui.theme.Teal400
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -354,6 +356,7 @@ private fun TypingIndicator() {
             )
             Box(
                 modifier = Modifier
+                    .offset(y = offsetY.dp)  // ← thêm dòng này
                     .size(8.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.onSurfaceVariant)

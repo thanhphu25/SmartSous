@@ -6,6 +6,7 @@ import com.example.smartsous.data.remote.GeminiDataSource
 import com.example.smartsous.domain.model.ChatMessage
 import com.example.smartsous.domain.model.Ingredient
 import com.example.smartsous.domain.model.MessageRole
+import com.example.smartsous.domain.model.MessageType
 import com.example.smartsous.domain.repository.IChatRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -32,6 +33,8 @@ class ChatRepositoryImpl @Inject constructor(
     )
 
     override suspend fun saveMessage(message: ChatMessage) {
+        if (message.type == MessageType.RECIPE_SUGGESTION) return
+
         chatMessageDao.insert(message.toEntity())
     }
 

@@ -275,6 +275,13 @@ class ChatViewModel @Inject constructor(
                     )
                 )
             }
+        } else {
+            _uiState.update { state ->
+                state.copy(
+                    isTyping = false,
+                    streamingText = ""
+                )
+            }
         }
     }
 

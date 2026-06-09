@@ -10,6 +10,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 @HiltWorker
 class ExpiryCheckWorker @AssistedInject constructor(
@@ -26,38 +27,42 @@ class ExpiryCheckWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            Log.d(TAG, "ExpiryCheckWorker bắt đầu chạy...")
+            Log.d(TAG, "ExpiryCheckWorker started")
 
-            // Ngưỡng: hết hạn trong 3 ngày tới
-            val threshold = LocalDate.now().plusDays(3).toString()
+            val today = LocalDate.now()
+            val threshold = today
+                .plusDays(ExpiryNotificationPolicy.WARNING_WINDOW_DAYS)
+                .toString()
             val expiringIngredients = ingredientDao.getExpiring(threshold).first()
 
-            Log.d(TAG, "Tìm thấy ${expiringIngredients.size} nguyên liệu sắp hết hạn")
+            Log.d(TAG, "Found ${expiringIngredients.size} expiring ingredients")
 
-            expiringIngredients.forEachIndexed { index, entity ->
-                if (entity.expiryDate == null) return@forEachIndexed
+            expiringIngredients.forEach { entity ->
+                val expiryDateText = entity.expiryDate ?: return@forEach
+                val daysLeft = try {
+                    val expiryDate = LocalDate.parse(expiryDateText)
+                    ChronoUnit.DAYS.between(today, expiryDate).toInt()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Invalid expiry date for ${entity.name}: $expiryDateText")
+                    return@forEach
+                }
 
-                val expiryDate = LocalDate.parse(entity.expiryDate)
-                val daysLeft = java.time.temporal.ChronoUnit.DAYS
-                    .between(LocalDate.now(), expiryDate)
-                    .toInt()
-
-                // Chỉ thông báo đúng 3 mức: 0, 1, 3 ngày
-                if (daysLeft in listOf(0, 1, 3)) {
+                if (ExpiryNotificationPolicy.shouldNotify(daysLeft)) {
                     notificationHelper.showExpiryNotification(
                         ingredientName = entity.name,
                         daysLeft = daysLeft,
-                        notificationId = 1000 + index  // ID unique cho mỗi notification
+                        notificationId = ExpiryNotificationPolicy.notificationId(
+                            ingredientId = entity.id,
+                            daysLeft = daysLeft
+                        )
                     )
-                    Log.d(TAG, "Đã gửi notification: ${entity.name}, còn $daysLeft ngày")
+                    Log.d(TAG, "Sent expiry notification: ${entity.name}, daysLeft=$daysLeft")
                 }
             }
 
             Result.success()
-
         } catch (e: Exception) {
-            Log.e(TAG, "ExpiryCheckWorker lỗi: ${e.message}", e)
-            // Retry tối đa 3 lần nếu thất bại
+            Log.e(TAG, "ExpiryCheckWorker failed: ${e.message}", e)
             Result.retry()
         }
     }

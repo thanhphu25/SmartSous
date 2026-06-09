@@ -73,7 +73,7 @@ class NotificationHelper @Inject constructor(
     // Build PendingIntent để deep link vào đúng màn hình
     private fun buildPendingIntent(route: String): PendingIntent {
         val intent = Intent(context, SmartSousActivity::class.java).apply {
-            putExtra("navigate_to", route)
+            putExtra(SmartSousActivity.EXTRA_NAVIGATE_TO, route)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         return PendingIntent.getActivity(

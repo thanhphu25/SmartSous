@@ -59,7 +59,7 @@ fun AppNavGraph(
 
         composable("home") {
             HomeScreen(
-                modifier = modifier,
+                //modifier = modifier,
                 onRecipeClick = { recipeId ->
                     navController.navigate("recipe/$recipeId")
                 }
@@ -68,14 +68,14 @@ fun AppNavGraph(
 
         composable("search") {
             SearchScreen(
-                modifier = modifier,
+                //modifier = modifier,
                 onRecipeClick = { recipeId ->
                     navController.navigate("recipe/$recipeId")
                 }
             )
         }
 
-        composable("planner") { PlannerScreen(modifier) }
+        composable("planner") { PlannerScreen(/*modifier*/) }
         composable("pantry") {
             // Nhận tên sản phẩm từ barcode scan (nếu có)
             val scannedName = navController.currentBackStackEntry
@@ -96,7 +96,7 @@ fun AppNavGraph(
             }
 
             PantryScreen(
-                modifier = modifier,
+                //modifier = modifier,
                 onNavigateToScan = {
                     navController.navigate("barcode_scan")
                 },
@@ -105,7 +105,7 @@ fun AppNavGraph(
         }
         composable("favorites") {
             FavoritesScreen(
-                modifier = modifier,
+                //modifier = modifier,
                 onRecipeClick = { recipeId ->
                     navController.navigate("recipe/$recipeId")
                 },
@@ -113,6 +113,10 @@ fun AppNavGraph(
                     navController.navigate("search")
                 }
             )
+        }
+
+        composable("chat") {
+            ChatScreen(/*modifier = modifier*/)
         }
 
         // Route RecipeDetail — nhận recipeId từ argument
@@ -143,7 +147,7 @@ fun AppNavGraph(
         }
 
         composable("settings") {
-            SettingsScreen(modifier = modifier)
+            SettingsScreen(/*modifier = modifier*/)
         }
     }
 }

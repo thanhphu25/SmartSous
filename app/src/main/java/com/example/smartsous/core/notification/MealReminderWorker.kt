@@ -27,43 +27,18 @@ class MealReminderWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         return try {
             val today = LocalDate.now().toString()
-
-            // Lấy tất cả meal plans của hôm nay
             val todayPlans = mealPlanDao
                 .getForWeek(today, today)
                 .first()
 
-            val summary = if (todayPlans.isEmpty()) {
-                "Hôm nay chưa có kế hoạch — mở SmartSous để lên thực đơn nhé!"
-            } else {
-                // Build summary từ danh sách meal plans
-                val mealLines = todayPlans.joinToString("\n") { plan ->
-                    val mealLabel = when (plan.mealType) {
-                        "BREAKFAST" -> "Sáng"
-                        "LUNCH"     -> "Trưa"
-                        "DINNER"    -> "Tối"
-                        else        -> "Phụ"
-                    }
-                    "• $mealLabel: có ${countRecipes(plan.recipeIdsJson)} món"
-                }
-                "Thực đơn hôm nay:\n$mealLines"
-            }
-
+            val summary = MealReminderPolicy.buildMealSummary(todayPlans)
             notificationHelper.showMealReminderNotification(summary)
-            Log.d(TAG, "Đã gửi meal reminder: $summary")
+            Log.d(TAG, "Sent meal reminder: $summary")
 
             Result.success()
-
         } catch (e: Exception) {
-            Log.e(TAG, "MealReminderWorker lỗi: ${e.message}", e)
+            Log.e(TAG, "MealReminderWorker failed: ${e.message}", e)
             Result.retry()
         }
-    }
-
-    // Đếm số recipe trong JSON array string
-    private fun countRecipes(recipeIdsJson: String): Int {
-        return try {
-            org.json.JSONArray(recipeIdsJson).length()
-        } catch (e: Exception) { 0 }
     }
 }

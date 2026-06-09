@@ -59,13 +59,15 @@ class NotificationHelper @Inject constructor(
                 NotificationCompat.BigTextStyle()
                     .bigText(mealSummary)
             )
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             // Bấm vào notification → mở PlannerScreen
             .setContentIntent(buildPendingIntent("planner"))
             .build()
 
-        manager?.notify(2000, notification)
+        manager?.notify(MealReminderPolicy.NOTIFICATION_ID, notification)
     }
 
     // Build PendingIntent để deep link vào đúng màn hình

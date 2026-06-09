@@ -130,6 +130,7 @@ fun SettingsScreen(
                 buttonColor = Purple400,
                 enabled = !uiState.isTestingMeal,
                 onClick = {
+                    viewModel.addTestMealPlanForToday()
                     viewModel.testMealReminder()
                     scope.launch {
                         snackbarHostState.showSnackbar(

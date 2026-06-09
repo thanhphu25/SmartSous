@@ -53,7 +53,10 @@ class WorkerScheduler @Inject constructor(
             repeatIntervalTimeUnit = TimeUnit.HOURS
         )
             .setInitialDelay(
-                delayUntilHour(hour = 7, minute = 30),
+                delayUntilHour(
+                    hour = MealReminderPolicy.REMINDER_HOUR,
+                    minute = MealReminderPolicy.REMINDER_MINUTE
+                ),
                 TimeUnit.MILLISECONDS
             )
             .build()

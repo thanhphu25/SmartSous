@@ -1,6 +1,5 @@
 package com.example.smartsous.feature.planner
 
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
@@ -20,7 +19,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -30,7 +28,6 @@ import com.example.smartsous.core.common.Spacing
 import com.example.smartsous.core.ui.components.NutritionChart
 import com.example.smartsous.core.ui.components.NutritionData
 import com.example.smartsous.core.ui.components.RecipeListSkeleton
-import com.example.smartsous.domain.model.MealType
 import com.example.smartsous.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,22 +35,40 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
+// Mock Domain Model để minh họa giao diện
+data class PlannedMeal(val id: String, val name: String, val date: LocalDate)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlannerScreen(
-    viewModel: PlannerViewModel = hiltViewModel()
+    isLoading: Boolean = false,
+    onRefresh: () -> Unit = {},
+    onMealMoved: (String, LocalDate) -> Unit = { _, _ -> } // Gọi Repo lưu local & push Firestore
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val today = remember { LocalDate.now() }
+    val currentWeekDays = remember { (0..6).map { today.plusDays(it.toLong()) } }
+    
+    // Mock Dữ liệu Chart & Kế hoạch
+    val nutritionData = listOf(
+        NutritionData("Calories", 1850f, "kcal", Purple400),
+        NutritionData("Protein", 120f, "g", Teal400),
+        NutritionData("Carbs", 200f, "g", Coral400)
+    )
+    val meals = remember { mutableStateListOf(
+        PlannedMeal("1", "Phở bò", today),
+        PlannedMeal("2", "Cơm chiên", today.plusDays(1))
+    )}
 
     val pullRefreshState = rememberPullToRefreshState()
+    val coroutineScope = rememberCoroutineScope()
     
     if (pullRefreshState.isRefreshing) {
         LaunchedEffect(true) {
-            viewModel.refresh()
+            onRefresh()
             delay(1000) // Fake network delay
             pullRefreshState.endRefresh()
         }
-    }   
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -64,11 +79,12 @@ fun PlannerScreen(
                 modifier = Modifier.padding(Spacing.md)
             )
             
-            NutritionChart(data = uiState.nutritionData)
+            NutritionChart(data = nutritionData)
 
             Spacer(modifier = Modifier.height(Spacing.md))
 
-            if (uiState.isLoading) {
+            if (isLoading) {
+                // Skeleton từ file LoadingShimer.kt có sẵn
                 RecipeListSkeleton()
             } else {
                 // Calendar Grid 7 cột
@@ -80,13 +96,18 @@ fun PlannerScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(uiState.weekDates) { date ->
-                        val dayMeals = uiState.plannedMeals.filter { it.date == date }
+                    items(currentWeekDays) { date ->
+                        val dayMeals = meals.filter { it.date == date }
                         DayColumn(
                             date = date,
                             meals = dayMeals,
-                            onMealMoved = { recipeId, mealType, oldDate, newDate ->
-                                viewModel.moveMeal(recipeId, mealType, oldDate, newDate)
+                            onMealDropped = { mealId ->
+                                onMealMoved(mealId, date)
+                                // Cập nhật lại UI tạm thời, thực tế ViewModel sẽ phản hồi lại luồng State
+                                val index = meals.indexOfFirst { it.id == mealId }
+                                if (index != -1) {
+                                    meals[index] = meals[index].copy(date = date)
+                                }
                             }
                         )
                     }
@@ -105,8 +126,8 @@ fun PlannerScreen(
 @Composable
 fun DayColumn(
     date: LocalDate,
-    meals: List<PlannerMealUiModel>,
-    onMealMoved: (String, MealType, LocalDate, LocalDate) -> Unit
+    meals: List<PlannedMeal>,
+    onMealDropped: (String) -> Unit
 ) {
     val formatter = DateTimeFormatter.ofPattern("dd/MM")
     val dayOfWeek = date.dayOfWeek.name.take(3)
@@ -125,31 +146,21 @@ fun DayColumn(
         Spacer(modifier = Modifier.height(8.dp))
 
         meals.forEach { meal ->
-            DraggableMealItem(
-                meal = meal,
-                onDrop = { columnsMoved ->
-                    val newDate = meal.date.plusDays(columnsMoved.toLong())
-                    if (newDate != meal.date) {
-                        onMealMoved(meal.recipeId, meal.mealType, meal.date, newDate)
-                    }
-                }
-            )
+            DraggableMealItem(meal = meal)
             Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }
 
 @Composable
-fun DraggableMealItem(meal: PlannerMealUiModel, onDrop: (Int) -> Unit) {
+fun DraggableMealItem(meal: PlannedMeal) {
     var isDragging by remember { mutableStateOf(false) }
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    var itemWidthPx by remember { mutableStateOf(1f) } // Lấy chiều rộng để tính toán offset
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .zIndex(if (isDragging) 1f else 0f)
-            .onGloballyPositioned { itemWidthPx = it.size.width.toFloat().coerceAtLeast(1f) }
             .graphicsLayer {
                 translationX = dragOffset.x
                 translationY = dragOffset.y
@@ -169,10 +180,8 @@ fun DraggableMealItem(meal: PlannerMealUiModel, onDrop: (Int) -> Unit) {
                     },
                     onDragEnd = {
                         isDragging = false
-                        // Tính toán xem kéo qua bao nhiêu cột (trái hay phải)
-                        val columnsMoved = (dragOffset.x / itemWidthPx).roundToInt()
                         dragOffset = Offset.Zero
-                        onDrop(columnsMoved)
+                        // TODO: Tính toán tọa độ thả tay để xác định ngày đích. Ở bản Production, ta cần quản lý DropTarget riêng biệt.
                     },
                     onDragCancel = {
                         isDragging = false

@@ -39,3 +39,6 @@ obj/
 
 # Navigation safe args generated
 app/src/main/java/**/NavGraph*.kt
+
+
+docs/

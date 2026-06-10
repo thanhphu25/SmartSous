@@ -5,6 +5,7 @@ import com.example.smartsous.BuildConfig
 import com.example.smartsous.core.network.GeminiClient
 import com.example.smartsous.domain.model.ChatMessage
 import com.example.smartsous.domain.model.Ingredient
+import com.example.smartsous.domain.model.MessageRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -21,9 +22,16 @@ import javax.inject.Singleton
 class GeminiDataSource @Inject constructor() {
 
     companion object {
+        // Groq endpoint — OpenAI compatible
         private const val BASE_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/" +
-                    "gemini-2.5-flash:streamGenerateContent"
+            "https://api.groq.com/openai/v1/chat/completions"
+
+        // Model options:
+        // "llama-3.3-70b-versatile" — tốt nhất, free
+        // "llama-3.1-8b-instant"    — nhanh nhất
+        // "gemma2-9b-it"            — Google model trên Groq
+        private const val MODEL = "llama-3.3-70b-versatile"
+
         private const val TAG = "GeminiDataSource"
     }
 
@@ -33,21 +41,20 @@ class GeminiDataSource @Inject constructor() {
         chatHistory: List<ChatMessage> = emptyList()
     ): Flow<String> = flow {
 
-        val url = "$BASE_URL?key=${BuildConfig.GEMINI_API_KEY}&alt=sse"
+        Log.d(TAG, "=== GỌI GROQ === message: $userMessage")
 
-        // Build body với system prompt + history + tin nhắn mới
-        val body = buildRequestBody(
-            userMessage = userMessage,
+        val body = buildGroqRequestBody(
+            userMessage       = userMessage,
             pantryIngredients = pantryIngredients,
-            chatHistory = chatHistory
+            chatHistory       = chatHistory
         )
 
-        Log.d(TAG, "=== GỌI GEMINI === message: $userMessage")
-
         val request = Request.Builder()
-            .url(url)
+            .url(BASE_URL)
             .post(body.toRequestBody("application/json".toMediaType()))
             .addHeader("Content-Type", "application/json")
+            // Groq dùng Bearer token thay vì query param
+            .addHeader("Authorization", "Bearer ${BuildConfig.GROQ_API_KEY}")
             .build()
 
         val response = GeminiClient.okHttp.newCall(request).execute()
@@ -56,7 +63,7 @@ class GeminiDataSource @Inject constructor() {
         if (!response.isSuccessful) {
             val errorBody = response.body?.string() ?: "No error body"
             Log.e(TAG, "LỖI HTTP: $errorBody")
-            throw Exception("Gemini API lỗi ${response.code}: $errorBody")
+            throw Exception("Groq API lỗi ${response.code}: $errorBody")
         }
 
         val source = response.body?.source()
@@ -64,11 +71,14 @@ class GeminiDataSource @Inject constructor() {
 
         while (!source.exhausted()) {
             val line = source.readUtf8Line() ?: break
+
             when {
                 line.startsWith("data: ") -> {
                     val jsonStr = line.removePrefix("data: ").trim()
                     if (jsonStr == "[DONE]") break
-                    val text = parseChunk(jsonStr)
+
+                    // Parse format OpenAI/Groq — khác với Gemini
+                    val text = parseGroqChunk(jsonStr)
                     if (text.isNotEmpty()) emit(text)
                 }
                 else -> continue
@@ -77,65 +87,61 @@ class GeminiDataSource @Inject constructor() {
 
     }.flowOn(Dispatchers.IO)
 
-    private fun buildRequestBody(
+    // ── Build request body theo format OpenAI ────────────────
+    private fun buildGroqRequestBody(
         userMessage: String,
         pantryIngredients: List<Ingredient>,
         chatHistory: List<ChatMessage>
     ): String {
         val root = JSONObject()
+        root.put("model", MODEL)
+        root.put("stream", true)
+        root.put("max_tokens", 1024)
+        root.put("temperature", 0.7)
 
-        // System instruction với pantry context
-        val systemPrompt = PromptBuilder.buildSystemPrompt(pantryIngredients)
-        root.put("system_instruction", JSONObject().apply {
-            put("parts", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("text", systemPrompt)
-                })
-            })
+        val messages = JSONArray()
+
+        // System message — đầu tiên trong array
+        val systemContent = PromptBuilder.buildSystemPrompt(pantryIngredients)
+        messages.put(JSONObject().apply {
+            put("role", "system")
+            put("content", systemContent)
         })
 
-        // Conversation history + tin nhắn mới
-        val conversationMessages = PromptBuilder.buildConversationMessages(
-            history = chatHistory,
-            newUserMessage = userMessage
-        )
-
-        root.put("contents", JSONArray().apply {
-            conversationMessages.forEach { msg ->
-                put(JSONObject().apply {
-                    put("role", msg["role"] as String)
-                    @Suppress("UNCHECKED_CAST")
-                    val parts = msg["parts"] as List<Map<String, String>>
-                    put("parts", JSONArray().apply {
-                        parts.forEach { part ->
-                            put(JSONObject().apply {
-                                put("text", part["text"] ?: "")
-                            })
-                        }
-                    })
-                })
+        // Conversation history
+        chatHistory.takeLast(10).forEach { msg ->
+            val role = when (msg.role) {
+                MessageRole.USER      -> "user"
+                MessageRole.ASSISTANT -> "assistant"
             }
+            messages.put(JSONObject().apply {
+                put("role", role)
+                put("content", msg.content)
+            })
+        }
+
+        // Tin nhắn mới của user
+        messages.put(JSONObject().apply {
+            put("role", "user")
+            put("content", userMessage)
         })
 
-        root.put("generationConfig", JSONObject().apply {
-            put("temperature", 0.8)
-            put("maxOutputTokens", 1024)
-            put("topP", 0.9)
-        })
-
+        root.put("messages", messages)
         return root.toString()
     }
 
-    private fun parseChunk(jsonStr: String): String {
+    // ── Parse SSE chunk theo format Groq/OpenAI ───────────────
+    // Gemini:  {"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}
+    // Groq:    {"choices":[{"delta":{"content":"Hello"},"index":0}]}
+    private fun parseGroqChunk(jsonStr: String): String {
         return try {
-            val json = JSONObject(jsonStr)
-            val candidates = json.getJSONArray("candidates")
-            if (candidates.length() == 0) return ""
-            val content = candidates.getJSONObject(0)
-                .optJSONObject("content") ?: return ""
-            val parts = content.getJSONArray("parts")
-            if (parts.length() == 0) return ""
-            parts.getJSONObject(0).optString("text", "")
+            val json     = JSONObject(jsonStr)
+            val choices  = json.optJSONArray("choices") ?: return ""
+            if (choices.length() == 0) return ""
+
+            val delta    = choices.getJSONObject(0).optJSONObject("delta") ?: return ""
+            delta.optString("content", "")
+
         } catch (e: Exception) {
             Log.w(TAG, "Parse chunk lỗi: ${e.message}")
             ""

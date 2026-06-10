@@ -9,7 +9,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,21 +76,39 @@ class SmartSousActivity : ComponentActivity() {
                     pendingNotificationRoute = null
                 }
 
-                val hideBottomBarRoutes = listOf("splash", "onboarding", "recipe/{recipeId}")
+                val hideBottomBarRoutes = listOf("splash", "onboarding", "recipe/{recipeId}", "chat")
                 val showBottomBar = hideBottomBarRoutes.none { route ->
                     currentRoute == route || currentRoute?.startsWith("recipe/") == true
                 }
+                val showFab = currentRoute in listOf("home", "search", "planner", "favorites", "pantry")
 
                 Scaffold(
                     bottomBar = {
                         if (showBottomBar) {
                             SmartSousBottomBar(navController)
                         }
+                    },
+                    floatingActionButton = {
+                        if (showFab) {
+                            FloatingActionButton(
+                                onClick = { navController.navigate("chat") },
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "Mo tro ly AI"
+                                )
+                            }
+                        }
                     }
                 ) { innerPadding ->
                     AppNavGraph(
                         navController = navController,
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .consumeWindowInsets(innerPadding)
                     )
                 }
             }

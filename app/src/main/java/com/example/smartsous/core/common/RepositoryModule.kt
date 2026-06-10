@@ -4,8 +4,10 @@ import com.example.smartsous.data.repository.ChatRepositoryImpl
 import com.example.smartsous.data.repository.PantryRepositoryImpl
 import com.example.smartsous.data.repository.RecipeRepositoryImpl
 import com.example.smartsous.domain.repository.IChatRepository
+import com.example.smartsous.domain.repository.IMealPlanRepository
 import com.example.smartsous.domain.repository.IPantryRepository
 import com.example.smartsous.domain.repository.IRecipeRepository
+import com.example.smartsous.data.repository.MealPlanRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -29,4 +31,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindPantryRepository(impl: PantryRepositoryImpl): IPantryRepository
+
+    @Binds @Singleton
+    abstract fun bindMealPlanRepository(impl: MealPlanRepositoryImpl): IMealPlanRepository
 }

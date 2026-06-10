@@ -13,6 +13,9 @@ interface MealPlanDao {
     """)
     fun getForWeek(startDate: String, endDate: String): Flow<List<MealPlanEntity>>
 
+    @Query("SELECT * FROM meal_plans WHERE date = :date AND mealType = :mealType LIMIT 1")
+    suspend fun get(date: String, mealType: String): MealPlanEntity?
+
     @Upsert
     suspend fun upsert(plan: MealPlanEntity)
 

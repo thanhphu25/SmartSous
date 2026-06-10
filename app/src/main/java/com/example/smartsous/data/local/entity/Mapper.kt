@@ -67,6 +67,29 @@ fun Ingredient.toEntity(): IngredientEntity = IngredientEntity(
     addedDate = addedDate.toString()
 )
 
+// ── MealPlanEntity ↔ MealPlan ────────────────────────────
+
+fun List<MealPlanEntity>.toDomain(date: LocalDate): com.example.smartsous.domain.model.MealPlan {
+    val mealsMap = this.associate { 
+        com.example.smartsous.domain.model.MealType.valueOf(it.mealType) to parseStringListJson(it.recipeIdsJson)
+    }
+    return com.example.smartsous.domain.model.MealPlan(
+        id = date.toString(),
+        date = date,
+        meals = mealsMap
+    )
+}
+
+fun com.example.smartsous.domain.model.MealPlan.toEntities(): List<MealPlanEntity> {
+    return meals.map { (type, ids) ->
+        MealPlanEntity(
+            date = date.toString(),
+            mealType = type.name,
+            recipeIdsJson = listToJson(ids)
+        )
+    }
+}
+
 // ── JSON helpers ──────────────────────────────────────────
 
 private fun parseIngredientsJson(json: String): List<RecipeIngredient> {

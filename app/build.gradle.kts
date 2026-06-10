@@ -28,9 +28,11 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+//        val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
+//        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
 //        buildConfigField("String", "GEMINI_API_KEY", "\"${project.findProperty("GEMINI_API_KEY") ?: ""}\"")
+        val groqKey = localProperties.getProperty("GROQ_API_KEY") ?: ""
+        buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
     }
 
     buildFeatures {

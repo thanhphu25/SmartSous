@@ -8,6 +8,8 @@ import androidx.work.WorkManager
 import com.example.smartsous.core.common.BaseViewModel
 import com.example.smartsous.core.notification.ExpiryCheckWorker
 import com.example.smartsous.core.notification.MealReminderWorker
+import com.example.smartsous.data.local.dao.MealPlanDao
+import com.example.smartsous.data.local.entity.MealPlanEntity
 import com.example.smartsous.domain.model.Ingredient
 import com.example.smartsous.domain.model.IngredientCategory
 import com.example.smartsous.domain.repository.IPantryRepository
@@ -32,7 +34,8 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val application: Application,
-    private val pantryRepository: IPantryRepository
+    private val pantryRepository: IPantryRepository,
+    private val mealPlanDao: MealPlanDao
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -115,18 +118,22 @@ class SettingsViewModel @Inject constructor(
     fun testMealReminder() {
         _uiState.update { it.copy(isTestingMeal = true) }
 
-        val request = OneTimeWorkRequestBuilder<MealReminderWorker>()
-            .addTag("test_meal")
-            .build()
+        safeLaunch {
+            insertTestMealPlanForToday()
 
-        workManager.enqueue(request)
+            val request = OneTimeWorkRequestBuilder<MealReminderWorker>()
+                .addTag("test_meal")
+                .build()
 
-        workManager.getWorkInfoByIdLiveData(request.id)
-            .observeForever { info ->
-                if (info?.state?.isFinished == true) {
-                    _uiState.update { it.copy(isTestingMeal = false) }
+            workManager.enqueue(request)
+
+            workManager.getWorkInfoByIdLiveData(request.id)
+                .observeForever { info ->
+                    if (info?.state?.isFinished == true) {
+                        _uiState.update { it.copy(isTestingMeal = false) }
+                    }
                 }
-            }
+        }
     }
 
     // Thêm nguyên liệu test với expiry ngày mai
@@ -143,5 +150,29 @@ class SettingsViewModel @Inject constructor(
             )
             pantryRepository.upsert(testIngredient)
         }
+    }
+
+    fun addTestMealPlanForToday() {
+        safeLaunch {
+            insertTestMealPlanForToday()
+        }
+    }
+
+    private suspend fun insertTestMealPlanForToday() {
+        val today = LocalDate.now().toString()
+        mealPlanDao.upsert(
+            MealPlanEntity(
+                date = today,
+                mealType = "BREAKFAST",
+                recipeIdsJson = """["vn004"]"""
+            )
+        )
+        mealPlanDao.upsert(
+            MealPlanEntity(
+                date = today,
+                mealType = "DINNER",
+                recipeIdsJson = """["vn002","vn012"]"""
+            )
+        )
     }
 }

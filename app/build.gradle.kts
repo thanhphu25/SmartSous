@@ -92,4 +92,6 @@ dependencies {
     implementation(libs.camera.view)
     implementation(libs.mlkit.barcode)
     implementation(libs.guava)
+
+    testImplementation("junit:junit:4.13.2")
 }

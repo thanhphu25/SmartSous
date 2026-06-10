@@ -7,35 +7,34 @@ import android.os.Build
 import androidx.core.content.getSystemService
 
 object NotificationChannels {
+    const val CHANNEL_EXPIRY = "smartsous_expiry"
 
-    // ID của từng kênh — dùng khi gửi notification
-    const val CHANNEL_EXPIRY    = "smartsous_expiry"
-    const val CHANNEL_MEAL_PLAN = "smartsous_meal_plan"
+    // v2 forces Android to create a fresh HIGH-importance channel for demo/test.
+    const val CHANNEL_MEAL_PLAN = "smartsous_meal_plan_v2"
 
-    // Tạo tất cả channels — gọi 1 lần trong SmartSousApp.onCreate()
     fun createAll(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
         val manager = context.getSystemService<NotificationManager>() ?: return
 
-        // Kênh 1: Cảnh báo hết hạn — HIGH importance (có âm thanh, banner)
         val expiryChannel = NotificationChannel(
             CHANNEL_EXPIRY,
             "Cảnh báo hết hạn thực phẩm",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Thông báo khi nguyên liệu trong tủ lạnh sắp hết hạn"
+            description = "Thông báo khi nguyên liệu sắp hết hạn"
             enableVibration(true)
             enableLights(true)
         }
 
-        // Kênh 2: Nhắc kế hoạch ăn — DEFAULT importance (không làm phiền)
         val mealPlanChannel = NotificationChannel(
             CHANNEL_MEAL_PLAN,
             "Nhắc kế hoạch ăn uống",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Nhắc nhở buổi sáng về món ăn trong ngày"
+            description = "Nhắc buổi sáng về thực đơn trong ngày"
+            enableVibration(true)
+            enableLights(true)
         }
 
         manager.createNotificationChannels(

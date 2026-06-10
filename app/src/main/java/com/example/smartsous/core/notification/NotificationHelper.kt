@@ -59,19 +59,21 @@ class NotificationHelper @Inject constructor(
                 NotificationCompat.BigTextStyle()
                     .bigText(mealSummary)
             )
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             // Bấm vào notification → mở PlannerScreen
             .setContentIntent(buildPendingIntent("planner"))
             .build()
 
-        manager?.notify(2000, notification)
+        manager?.notify(MealReminderPolicy.NOTIFICATION_ID, notification)
     }
 
     // Build PendingIntent để deep link vào đúng màn hình
     private fun buildPendingIntent(route: String): PendingIntent {
         val intent = Intent(context, SmartSousActivity::class.java).apply {
-            putExtra("navigate_to", route)
+            putExtra(SmartSousActivity.EXTRA_NAVIGATE_TO, route)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         return PendingIntent.getActivity(

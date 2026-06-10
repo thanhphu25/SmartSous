@@ -34,7 +34,6 @@ fun NutritionChart(
     data: List<NutritionData>,
     modifier: Modifier = Modifier
 ) {
-    // Hiệu ứng "mọc" cột lên khi mở màn hình
     val animationProgress = remember { Animatable(0f) }
     
     LaunchedEffect(data) {
@@ -49,7 +48,7 @@ fun NutritionChart(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .height(240.dp) // Tăng chiều cao để đủ chỗ cho nhãn ở dưới
             .padding(16.dp)
     ) {
         val canvasWidth = size.width
@@ -60,20 +59,30 @@ fun NutritionChart(
         val totalSpacing = barSpacing * (barCount - 1)
         val barWidth = (canvasWidth - totalSpacing) / barCount
 
-        val textPaint = Paint().apply {
+        // Paint cho giá trị (trên đỉnh cột)
+        val valuePaint = Paint().apply {
             color = Gray800.toArgb()
-            textSize = 36f
+            textSize = 32f
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
+        // Paint cho nhãn (dưới chân cột)
+        val labelPaint = Paint().apply {
+            color = Gray800.toArgb()
+            textSize = 28f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        }
+
         data.forEachIndexed { index, item ->
-            // Tính toán chiều cao của cột dựa trên tỷ lệ và animation
-            val targetBarHeight = (item.value / maxValue) * (canvasHeight - 60f) // Trừ hao không gian cho text
+            // Trừ hao 40f cho nhãn ở dưới và 40f cho giá trị ở trên
+            val availableHeight = canvasHeight - 80f
+            val targetBarHeight = (item.value / maxValue) * availableHeight
             val currentBarHeight = targetBarHeight * animationProgress.value
             
             val xOffset = index * (barWidth + barSpacing)
-            val yOffset = canvasHeight - currentBarHeight
+            val yOffset = canvasHeight - currentBarHeight - 40f // Cách đáy 40f để vẽ nhãn
 
             // Vẽ cột
             drawRoundRect(
@@ -83,12 +92,20 @@ fun NutritionChart(
                 cornerRadius = CornerRadius(12f, 12f)
             )
 
-            // Vẽ Text hiển thị giá trị (vd: "450 kcal") bằng nativeCanvas
+            // Vẽ giá trị trên đỉnh cột
             drawContext.canvas.nativeCanvas.drawText(
                 "${item.value.toInt()} ${item.unit}",
                 xOffset + (barWidth / 2),
-                yOffset - 20f, // Cách đỉnh cột một khoảng
-                textPaint
+                yOffset - 15f,
+                valuePaint
+            )
+
+            // Vẽ nhãn dưới chân cột
+            drawContext.canvas.nativeCanvas.drawText(
+                item.label,
+                xOffset + (barWidth / 2),
+                canvasHeight - 5f,
+                labelPaint
             )
         }
     }

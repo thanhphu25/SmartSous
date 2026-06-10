@@ -3,7 +3,6 @@ package com.example.smartsous.feature.planner
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,27 +10,28 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.smartsous.core.common.Spacing
 import com.example.smartsous.core.ui.components.NutritionChart
 import com.example.smartsous.core.ui.components.RecipeListSkeleton
@@ -42,7 +42,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +51,6 @@ fun PlannerScreen(
     val uiState by viewModel.uiState.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
-    // BottomSheet State để chọn món
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     val sheetState = rememberModalBottomSheetState()
@@ -94,8 +92,8 @@ fun PlannerScreen(
                         DayColumn(
                             date = date,
                             meals = dayMeals,
-                            onMealMoved = { recipeId, mealType, oldDate, newDate ->
-                                viewModel.moveMeal(recipeId, mealType, oldDate, newDate)
+                            onDeleteMeal = { recipeId, mealType ->
+                                viewModel.removeMealFromPlan(recipeId, mealType, date)
                             },
                             onLongClick = {
                                 selectedDate = date
@@ -112,7 +110,6 @@ fun PlannerScreen(
             modifier = Modifier.align(Alignment.TopCenter)
         )
 
-        // BottomSheet chọn món ăn
         if (showBottomSheet && selectedDate != null) {
             ModalBottomSheet(
                 onDismissRequest = { showBottomSheet = false },
@@ -121,7 +118,6 @@ fun PlannerScreen(
                 RecipePickerContent(
                     recipes = uiState.allRecipes,
                     onRecipeSelected = { recipeId ->
-                        // Mặc định thêm vào LUNCH khi long-press vào cột ngày
                         viewModel.addRecipeToPlan(recipeId, MealType.LUNCH, selectedDate!!)
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             showBottomSheet = false
@@ -137,7 +133,7 @@ fun PlannerScreen(
 fun DayColumn(
     date: LocalDate,
     meals: List<PlannerMealUiModel>,
-    onMealMoved: (String, MealType, LocalDate, LocalDate) -> Unit,
+    onDeleteMeal: (String, MealType) -> Unit,
     onLongClick: () -> Unit
 ) {
     val formatter = DateTimeFormatter.ofPattern("dd/MM")
@@ -160,22 +156,59 @@ fun DayColumn(
             .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = dayOfWeek, style = MaterialTheme.typography.labelSmall)
-        Text(text = date.format(formatter), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+        Text(text = dayOfWeek, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+        Text(text = date.format(formatter), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, fontSize = 10.sp)
 
         Spacer(modifier = Modifier.height(8.dp))
 
         meals.forEach { meal ->
-            DraggableMealItem(
+            MealItem(
                 meal = meal,
-                onDrop = { columnsMoved ->
-                    val newDate = meal.date.plusDays(columnsMoved.toLong())
-                    if (newDate != meal.date) {
-                        onMealMoved(meal.recipeId, meal.mealType, meal.date, newDate)
-                    }
-                }
+                onDelete = { onDeleteMeal(meal.recipeId, meal.mealType) }
             )
             Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+fun MealItem(meal: PlannerMealUiModel, onDelete: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(4.dp))
+            .background(Purple100)
+            .padding(4.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = meal.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = Purple800,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 9.sp,
+                lineHeight = 10.sp
+            )
+        }
+        
+        // Nút xóa nhỏ ở góc
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(12.dp)
+                .offset(x = 2.dp, y = (-2).dp)
+                .clickable { onDelete() },
+            shape = CircleShape,
+            color = Color.Red.copy(alpha = 0.7f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Xóa",
+                tint = Color.White,
+                modifier = Modifier.padding(2.dp)
+            )
         }
     }
 }
@@ -192,7 +225,7 @@ fun RecipePickerContent(
             .navigationBarsPadding()
     ) {
         Text(
-            text = "Thêm món vào kế hoạch",
+            text = "Chọn món ăn để thêm",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
@@ -206,7 +239,14 @@ fun RecipePickerContent(
                     headlineContent = { Text(recipe.name) },
                     supportingContent = { Text(recipe.cuisine) },
                     leadingContent = {
-                        Box(Modifier.size(48.dp).background(Purple100, RoundedCornerShape(8.dp)))
+                        AsyncImage(
+                            model = recipe.imageUrl,
+                            contentDescription = recipe.name,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
+                        )
                     },
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -214,57 +254,5 @@ fun RecipePickerContent(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun DraggableMealItem(meal: PlannerMealUiModel, onDrop: (Int) -> Unit) {
-    var isDragging by remember { mutableStateOf(false) }
-    var dragOffset by remember { mutableStateOf(Offset.Zero) }
-    var itemWidthPx by remember { mutableStateOf(1f) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .zIndex(if (isDragging) 1f else 0f)
-            .onGloballyPositioned { itemWidthPx = it.size.width.toFloat().coerceAtLeast(1f) }
-            .graphicsLayer {
-                translationX = dragOffset.x
-                translationY = dragOffset.y
-                scaleX = if (isDragging) 1.1f else 1f
-                scaleY = if (isDragging) 1.1f else 1f
-                alpha = if (isDragging) 0.8f else 1f
-            }
-            .shadow(if (isDragging) 8.dp else 0.dp, RoundedCornerShape(4.dp))
-            .clip(RoundedCornerShape(4.dp))
-            .background(Purple100)
-            .pointerInput(Unit) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { isDragging = true },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragOffset += dragAmount
-                    },
-                    onDragEnd = {
-                        isDragging = false
-                        val columnsMoved = (dragOffset.x / itemWidthPx).roundToInt()
-                        dragOffset = Offset.Zero
-                        onDrop(columnsMoved)
-                    },
-                    onDragCancel = {
-                        isDragging = false
-                        dragOffset = Offset.Zero
-                    }
-                )
-            }
-            .padding(8.dp)
-    ) {
-        Text(
-            text = meal.name,
-            style = MaterialTheme.typography.labelSmall,
-            color = Purple800,
-            textAlign = TextAlign.Center,
-            maxLines = 2
-        )
     }
 }

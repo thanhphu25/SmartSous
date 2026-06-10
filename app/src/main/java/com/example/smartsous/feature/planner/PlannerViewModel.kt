@@ -47,13 +47,11 @@ class PlannerViewModel @Inject constructor(
     }
 
     private fun loadPlannerData() {
-        // Lấy ngày thứ 2 của tuần hiện tại làm mốc
         val startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val weekDates = (0..6).map { startOfWeek.plusDays(it.toLong()) }
         
         _uiState.update { it.copy(weekDates = weekDates, isLoading = true) }
 
-        // Combine MealPlan và Recipe để map ra tên món ăn và tính Nutrition
         combine(
             mealPlanRepository.getMealPlanForWeek(startOfWeek),
             recipeRepository.getAllRecipes()
@@ -65,13 +63,10 @@ class PlannerViewModel @Inject constructor(
             var totalPro = 0f
             var totalCarb = 0f
 
-            // Lặp qua từng kế hoạch (MealPlan) trong tuần
             mealPlans.forEach { plan ->
                 plan.meals.forEach { (mealType, recipeIds) ->
                     recipeIds.forEach { recipeId ->
-                        // Dùng recipeMap để tìm Recipe tương ứng với recipeId trong plan
                         recipeMap[recipeId]?.let { recipe ->
-                            // 1. Tạo UI Model để hiển thị trên Grid Calendar
                             uiMeals.add(
                                 PlannerMealUiModel(
                                     recipeId = recipe.id,
@@ -80,7 +75,6 @@ class PlannerViewModel @Inject constructor(
                                     mealType = mealType
                                 )
                             )
-                            // 2. Cộng dồn các chỉ số dinh dưỡng từ Recipe object
                             totalCal += recipe.nutrition.calories.toFloat()
                             totalPro += recipe.nutrition.protein.toFloat()
                             totalCarb += recipe.nutrition.carbs.toFloat()
@@ -89,7 +83,6 @@ class PlannerViewModel @Inject constructor(
                 }
             }
 
-            // Tính toán xong, update UI:
             val nutrition = listOf(
                 NutritionData("Calories", totalCal, "kcal", Purple400),
                 NutritionData("Protein", totalPro, "g", Teal400),
@@ -113,10 +106,9 @@ class PlannerViewModel @Inject constructor(
         }
     }
 
-    fun moveMeal(recipeId: String, mealType: MealType, oldDate: LocalDate, newDate: LocalDate) {
+    fun removeMealFromPlan(recipeId: String, mealType: MealType, date: LocalDate) {
         viewModelScope.launch {
-            mealPlanRepository.removeRecipeFromPlan(oldDate, mealType, recipeId)
-            mealPlanRepository.addRecipeToPlan(newDate, mealType, recipeId)
+            mealPlanRepository.removeRecipeFromPlan(date, mealType, recipeId)
         }
     }
 

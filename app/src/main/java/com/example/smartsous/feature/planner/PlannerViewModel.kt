@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartsous.core.ui.components.NutritionData
 import com.example.smartsous.domain.model.MealType
+import com.example.smartsous.domain.model.Recipe
 import com.example.smartsous.domain.repository.IMealPlanRepository
 import com.example.smartsous.domain.repository.IRecipeRepository
 import com.example.smartsous.ui.theme.Coral400
@@ -28,7 +29,8 @@ data class PlannerUiState(
     val isLoading: Boolean = true,
     val weekDates: List<LocalDate> = emptyList(),
     val plannedMeals: List<PlannerMealUiModel> = emptyList(),
-    val nutritionData: List<NutritionData> = emptyList()
+    val nutritionData: List<NutritionData> = emptyList(),
+    val allRecipes: List<Recipe> = emptyList()
 )
 
 @HiltViewModel
@@ -95,9 +97,20 @@ class PlannerViewModel @Inject constructor(
             )
 
             _uiState.update { 
-                it.copy(isLoading = false, plannedMeals = uiMeals, nutritionData = nutrition)
+                it.copy(
+                    isLoading = false, 
+                    plannedMeals = uiMeals, 
+                    nutritionData = nutrition,
+                    allRecipes = allRecipes
+                )
             }
         }.launchIn(viewModelScope)
+    }
+
+    fun addRecipeToPlan(recipeId: String, mealType: MealType, date: LocalDate) {
+        viewModelScope.launch {
+            mealPlanRepository.addRecipeToPlan(date, mealType, recipeId)
+        }
     }
 
     fun moveMeal(recipeId: String, mealType: MealType, oldDate: LocalDate, newDate: LocalDate) {

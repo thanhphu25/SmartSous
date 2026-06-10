@@ -63,16 +63,31 @@ class PlannerViewModel @Inject constructor(
             var totalPro = 0f
             var totalCarb = 0f
 
-            // Lưu ý cho Dev: Dựa vào cấu trúc thực tế của Domain Model `MealPlan` 
-            // (ví dụ nó chứa list recipeIds hay chứa trực tiếp property recipeId)
-            // Hãy mapping tương ứng ở block này nhé!
-            // Ở đây giả định mỗi MealPlan chứa 1 mảng recipes hoặc có property recipeId.
-            
+            // Lặp qua từng kế hoạch (MealPlan) trong tuần
+            mealPlans.forEach { plan ->
+                // Dùng recipeMap để tìm Recipe tương ứng với recipeId trong plan
+                recipeMap[plan.recipeId]?.let { recipe ->
+                    // 1. Tạo UI Model để hiển thị trên Grid Calendar
+                    uiMeals.add(
+                        PlannerMealUiModel(
+                            recipeId = recipe.id,
+                            name = recipe.name,
+                            date = plan.date,
+                            mealType = plan.mealType
+                        )
+                    )
+                    // 2. Cộng dồn các chỉ số dinh dưỡng từ Recipe object
+                    totalCal += recipe.nutrition.calories.toFloat()
+                    totalPro += recipe.nutrition.protein.toFloat()
+                    totalCarb += recipe.nutrition.carbs.toFloat()
+                }
+            }
+
             // Tính toán xong, update UI:
             val nutrition = listOf(
-                NutritionData("Calories", totalCal.takeIf { it > 0 } ?: 1850f, "kcal", Purple400),
-                NutritionData("Protein", totalPro.takeIf { it > 0 } ?: 120f, "g", Teal400),
-                NutritionData("Carbs", totalCarb.takeIf { it > 0 } ?: 200f, "g", Coral400)
+                NutritionData("Calories", totalCal, "kcal", Purple400),
+                NutritionData("Protein", totalPro, "g", Teal400),
+                NutritionData("Carbs", totalCarb, "g", Coral400)
             )
 
             _uiState.update { 

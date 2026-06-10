@@ -53,6 +53,13 @@ class IntentDetector @Inject constructor() {
         "dinh dưỡng", "protein", "vitamin", "ăn kiêng", "low carb"
     )
 
+    private val knownIngredients = listOf(
+        "cà chua", "thịt bò", "thịt heo", "thịt lợn", "thịt gà", "cá", "tôm",
+        "trứng", "đậu phụ", "rau muống", "bí đỏ", "hành tây", "tỏi", "gừng",
+        "ớt", "cà rốt", "khoai tây", "bắp cải", "giá đỗ", "nấm", "đậu hũ",
+        "mực", "ngao", "cua", "sườn", "xương", "lòng", "gan", "tim"
+    )
+
     // Phân tích message → trả về Intent
     fun detect(message: String): ChatIntent {
         val lower = message.lowercase().trim()
@@ -97,19 +104,24 @@ class IntentDetector @Inject constructor() {
     // Tách tên nguyên liệu từ chuỗi
     // "cà chua, thịt bò và hành tây" → ["cà chua", "thịt bò", "hành tây"]
     fun extractIngredients(text: String): List<String> {
-        return text
+        val lower = text.lowercase()
+
+        // Thử tách bằng separator trước
+        val bySeparator = lower
             .split(Regex("[,+&\\nvà/]"))
             .map { it.trim() }
-            .filter { word ->
-                word.isNotBlank() &&
-                        word.length >= 2 &&
-                        // Lọc bỏ stop words
-                        word !in stopWords
-            }
-            .map { cleanIngredientName(it) }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(8) // Tối đa 8 nguyên liệu
+            .filter { it.isNotBlank() && it.length >= 2 && it !in stopWords }
+
+        if (bySeparator.size >= 2) return bySeparator.map { cleanIngredientName(it) }
+
+        // Không có separator → dùng danh sách từ khóa
+        val matched = knownIngredients.filter { keyword ->
+            lower.contains(keyword)
+        }
+        if (matched.isNotEmpty()) return matched
+
+        // Fallback: trả về token duy nhất
+        return bySeparator.map { cleanIngredientName(it) }.filter { it.isNotBlank() }
     }
 
     // Kiểm tra có dấu phân cách nguyên liệu không

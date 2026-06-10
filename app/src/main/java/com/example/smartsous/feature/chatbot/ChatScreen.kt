@@ -73,7 +73,12 @@ import com.example.smartsous.ui.theme.Teal400
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.example.smartsous.core.ui.components.MarkdownText
+import com.example.smartsous.core.ui.components.parseMarkdown
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -262,37 +267,43 @@ private fun MessageBubble(message: ChatMessage) {
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 16.dp, topEnd = 16.dp,
-                        bottomStart = if (isUser) 16.dp else 4.dp,
-                        bottomEnd   = if (isUser) 4.dp  else 16.dp
-                    )
-                )
+                .clip(RoundedCornerShape(
+                    topStart = 16.dp, topEnd = 16.dp,
+                    bottomStart = if (isUser) 16.dp else 4.dp,
+                    bottomEnd   = if (isUser) 4.dp  else 16.dp
+                ))
                 .background(
                     if (isUser) Purple400
                     else MaterialTheme.colorScheme.surfaceVariant
                 )
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isUser) Color.White
-                else MaterialTheme.colorScheme.onSurface
-            )
+            if (isUser) {
+                // User message: text thường, không cần markdown
+                Text(
+                    text  = message.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White
+                )
+            } else {
+                // AI message: render markdown
+                MarkdownText(
+                    text  = message.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
 
-// ── Bubble đang stream với cursor nhấp nháy ───────────────
+// Trong StreamingBubble() — cũng dùng MarkdownText
 @Composable
 private fun StreamingBubble(text: String) {
-    // Cursor nhấp nháy
     val alpha by rememberInfiniteTransition(label = "cursor")
         .animateFloat(
-            initialValue = 1f,
-            targetValue  = 0f,
+            initialValue  = 1f,
+            targetValue   = 0f,
             animationSpec = infiniteRepeatable(
                 animation  = tween(500, easing = LinearEasing),
                 repeatMode = RepeatMode.Reverse
@@ -300,10 +311,7 @@ private fun StreamingBubble(text: String) {
             label = "cursor_alpha"
         )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Start
-    ) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
@@ -314,20 +322,18 @@ private fun StreamingBubble(text: String) {
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            // Text + cursor nhấp nháy
-            Row {
-                Text(
-                    text  = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                // Cursor "|"
-                Text(
-                    text  = "▌",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Purple400.copy(alpha = alpha)
-                )
+            // Dùng AnnotatedString từ parseMarkdown + append cursor
+            val annotated = buildAnnotatedString {
+                append(text.parseMarkdown())
+                withStyle(SpanStyle(color = Purple400.copy(alpha = alpha))) {
+                    append("▌")
+                }
             }
+            Text(
+                text  = annotated,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

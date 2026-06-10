@@ -65,21 +65,25 @@ class PlannerViewModel @Inject constructor(
 
             // Lặp qua từng kế hoạch (MealPlan) trong tuần
             mealPlans.forEach { plan ->
-                // Dùng recipeMap để tìm Recipe tương ứng với recipeId trong plan
-                recipeMap[plan.recipeId]?.let { recipe ->
-                    // 1. Tạo UI Model để hiển thị trên Grid Calendar
-                    uiMeals.add(
-                        PlannerMealUiModel(
-                            recipeId = recipe.id,
-                            name = recipe.name,
-                            date = plan.date,
-                            mealType = plan.mealType
-                        )
-                    )
-                    // 2. Cộng dồn các chỉ số dinh dưỡng từ Recipe object
-                    totalCal += recipe.nutrition.calories.toFloat()
-                    totalPro += recipe.nutrition.protein.toFloat()
-                    totalCarb += recipe.nutrition.carbs.toFloat()
+                plan.meals.forEach { (mealType, recipeIds) ->
+                    recipeIds.forEach { recipeId ->
+                        // Dùng recipeMap để tìm Recipe tương ứng với recipeId trong plan
+                        recipeMap[recipeId]?.let { recipe ->
+                            // 1. Tạo UI Model để hiển thị trên Grid Calendar
+                            uiMeals.add(
+                                PlannerMealUiModel(
+                                    recipeId = recipe.id,
+                                    name = recipe.name,
+                                    date = plan.date,
+                                    mealType = mealType
+                                )
+                            )
+                            // 2. Cộng dồn các chỉ số dinh dưỡng từ Recipe object
+                            totalCal += recipe.nutrition.calories.toFloat()
+                            totalPro += recipe.nutrition.protein.toFloat()
+                            totalCarb += recipe.nutrition.carbs.toFloat()
+                        }
+                    }
                 }
             }
 

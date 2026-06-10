@@ -43,6 +43,7 @@ class SmartSousApp : Application(), Configuration.Provider {
                 return@launch
             }
 
+            //first time
             // dataStoreManager.reset()
 
             // Chạy song song — không cần đợi nhau

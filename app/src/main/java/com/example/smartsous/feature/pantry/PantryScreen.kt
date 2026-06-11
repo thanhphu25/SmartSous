@@ -25,12 +25,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -89,11 +91,24 @@ fun PantryScreen(
                     vertical = Spacing.md
                 )
             ) {
-                Text(
-                    "Tủ lạnh 🧊",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Tủ lạnh 🧊",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onNavigateToScan) {
+                        Icon(
+                            Icons.Default.QrCodeScanner,
+                            contentDescription = "Quét barcode",
+                            tint = Purple400
+                        )
+                    }
+                }
                 Text(
                     "${uiState.allIngredients.size} nguyên liệu",
                     style = MaterialTheme.typography.bodyMedium,
@@ -236,7 +251,7 @@ fun PantryScreen(
             onClick = { viewModel.openAddSheet() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(Spacing.md),
+                .padding(end = Spacing.md, bottom = 96.dp),
             containerColor = Purple400,
             contentColor = Color.White
         ) {
@@ -253,13 +268,7 @@ fun PantryScreen(
                 onCategoryChange = viewModel::onCategoryChange,
                 onExpiryDateChange = viewModel::onExpiryDateChange,
                 onSave = viewModel::saveIngredient,
-                onDismiss = viewModel::closeSheet,
-                onScanBarcode = {
-                    viewModel.closeSheet()
-                    // Navigate sang màn hình scan
-                    // Dùng callback để tránh phụ thuộc navController trong composable
-                    onNavigateToScan()
-                }
+                onDismiss = viewModel::closeSheet
             )
         }
     }

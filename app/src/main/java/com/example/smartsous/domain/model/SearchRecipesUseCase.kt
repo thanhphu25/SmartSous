@@ -33,19 +33,59 @@ class SearchRecipesUseCase @Inject constructor() {
 
     private fun matchesQuery(recipe: Recipe, query: String): Boolean {
         if (query.isBlank()) return true
-        val q = query.normalizeForSearch()
-        return recipe.name.normalizeForSearch().contains(q)
-                || recipe.description.normalizeForSearch().contains(q)
-                || recipe.tags.any { it.normalizeForSearch().contains(q) }
-                || recipe.cuisine.normalizeForSearch().contains(q)
-                || recipe.ingredients.any { it.name.normalizeForSearch().contains(q) }
+        val stripDiacritics = !query.hasSearchDiacritics()
+        val queryTokens = query.normalizeForSearch(stripDiacritics).toSearchTokens()
+        if (queryTokens.isEmpty()) return true
+
+        val searchableTokenGroups = buildList {
+            add(recipe.name.normalizeForSearch(stripDiacritics).toSearchTokens())
+            recipe.ingredients.forEach { ingredient ->
+                add(ingredient.name.normalizeForSearch(stripDiacritics).toSearchTokens())
+            }
+        }
+
+        return searchableTokenGroups.any { tokens ->
+            tokens.matchesQueryTokens(queryTokens)
+        }
     }
 
-    private fun String.normalizeForSearch(): String =
-        Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD)
+    private fun List<String>.matchesQueryTokens(queryTokens: List<String>): Boolean {
+        return queryTokens.all { queryToken ->
+            any { nameToken ->
+                if (queryToken.length <= 2) {
+                    nameToken == queryToken
+                } else {
+                    nameToken.startsWith(queryToken)
+                }
+            }
+        }
+    }
+
+    private fun String.normalizeForSearch(stripDiacritics: Boolean): String {
+        val normalized = Normalizer.normalize(
+            trim().lowercase(),
+            if (stripDiacritics) Normalizer.Form.NFD else Normalizer.Form.NFC
+        )
+        val searchable = if (stripDiacritics) {
+            normalized
+                .replace(combiningMarksRegex, "")
+                .replace('đ', 'd')
+        } else {
+            normalized
+        }
+        return searchable.replace(whitespaceRegex, " ")
+    }
+
+    private fun String.hasSearchDiacritics(): Boolean {
+        val normalized = Normalizer.normalize(lowercase(), Normalizer.Form.NFD)
+        val folded = normalized
             .replace(combiningMarksRegex, "")
             .replace('đ', 'd')
-            .replace(whitespaceRegex, " ")
+        return normalized != folded
+    }
+
+    private fun String.toSearchTokens(): List<String> =
+        split(" ").filter { it.isNotBlank() }
 
     private fun matchesCuisine(
         recipe: Recipe,

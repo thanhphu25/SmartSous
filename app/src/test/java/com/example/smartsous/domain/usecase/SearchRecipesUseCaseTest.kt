@@ -13,7 +13,7 @@ class SearchRecipesUseCaseTest {
     private val useCase = SearchRecipesUseCase()
 
     @Test
-    fun invoke_filtersByIngredientNameAndSortsFavoritesFirst() {
+    fun invoke_filtersByRecipeNameAndSortsFavoritesFirst() {
         val recipes = listOf(
             recipe(
                 id = "beef-stir-fry",
@@ -30,6 +30,7 @@ class SearchRecipesUseCaseTest {
             recipe(
                 id = "morning-salad",
                 name = "Morning salad",
+                description = "Beef appears only outside the recipe name",
                 ingredients = listOf(RecipeIngredient("lettuce", 100.0, "g")),
                 isFavorite = true
             )
@@ -41,6 +42,86 @@ class SearchRecipesUseCaseTest {
         )
 
         assertEquals(listOf("favorite-beef-soup", "beef-stir-fry"), result.map { it.id })
+    }
+
+    @Test
+    fun invoke_doesNotMatchQueryFromHiddenRecipeFields() {
+        val recipes = listOf(
+            recipe(
+                id = "ca-kho",
+                name = "Cá kho"
+            ),
+            recipe(
+                id = "bao-tu-ham-tieu-den",
+                name = "Bao tử hầm tiêu đen",
+                description = "Có cá trong mô tả",
+                cuisine = "Cá nhà",
+                ingredients = listOf(RecipeIngredient("cà chua", 1.0, "quả")),
+                tags = listOf("cá")
+            )
+        )
+
+        val result = useCase(
+            recipes = recipes,
+            filter = SearchFilter(query = "cá")
+        )
+
+        assertEquals(listOf("ca-kho"), result.map { it.id })
+    }
+
+    @Test
+    fun invoke_matchesQueryFromIngredientName() {
+        val recipes = listOf(
+            recipe(
+                id = "salad-ca-hoi",
+                name = "Salad mùa hè",
+                ingredients = listOf(RecipeIngredient("Cá hồi", 150.0, "g"))
+            ),
+            recipe(
+                id = "bo-vien-sot-ca-chua",
+                name = "Bò viên sốt cà chua",
+                ingredients = listOf(RecipeIngredient("cà chua", 2.0, "quả"))
+            )
+        )
+
+        val accentedResult = useCase(recipes, SearchFilter(query = "Cá hồi"))
+        val plainResult = useCase(recipes, SearchFilter(query = "ca hoi"))
+
+        assertEquals(listOf("salad-ca-hoi"), accentedResult.map { it.id })
+        assertEquals(listOf("salad-ca-hoi"), plainResult.map { it.id })
+    }
+
+    @Test
+    fun invoke_matchesShortVietnameseQueryAsANameWord() {
+        val recipes = listOf(
+            recipe(
+                id = "ca-kho",
+                name = "Cá kho"
+            ),
+            recipe(
+                id = "canh-ca",
+                name = "Canh cá"
+            ),
+            recipe(
+                id = "banh-macaron",
+                name = "Bánh Macaron"
+            ),
+            recipe(
+                id = "banh-canh-cua",
+                name = "Bánh canh cua"
+            ),
+            recipe(
+                id = "bo-vien-sot-ca-chua",
+                name = "Bò viên sốt cà chua"
+            )
+        )
+
+        val result = useCase(
+            recipes = recipes,
+            filter = SearchFilter(query = "cá")
+        )
+
+        assertEquals(setOf("ca-kho", "canh-ca"), result.map { it.id }.toSet())
     }
 
     @Test
@@ -123,6 +204,7 @@ class SearchRecipesUseCaseTest {
         cookingTimeMinutes: Int = 20,
         calories: Int = 300,
         ingredients: List<RecipeIngredient> = listOf(RecipeIngredient("tomato", 2.0, "item")),
+        tags: List<String> = listOf("test"),
         isFavorite: Boolean = false
     ) = Recipe(
         id = id,
@@ -135,7 +217,7 @@ class SearchRecipesUseCaseTest {
         ingredients = ingredients,
         steps = listOf("Cook"),
         nutrition = Nutrition(calories, 10.0, 20.0, 5.0, 2.0),
-        tags = listOf("test"),
+        tags = tags,
         cuisine = cuisine,
         isFavorite = isFavorite
     )

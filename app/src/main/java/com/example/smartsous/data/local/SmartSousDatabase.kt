@@ -1,7 +1,9 @@
 package com.example.smartsous.data.local
 
 import androidx.room.Database
+import androidx.room.migration.Migration
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.smartsous.data.local.dao.*
 import com.example.smartsous.data.local.entity.*
 // room db
@@ -11,8 +13,9 @@ import com.example.smartsous.data.local.entity.*
         IngredientEntity::class,
         MealPlanEntity::class,
         ChatMessageEntity::class,
+        ChatConversationEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class SmartSousDatabase : RoomDatabase() {
@@ -20,4 +23,36 @@ abstract class SmartSousDatabase : RoomDatabase() {
     abstract fun ingredientDao(): IngredientDao
     abstract fun mealPlanDao(): MealPlanDao
     abstract fun chatMessageDao(): ChatMessageDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS chat_conversations (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        title TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO chat_conversations (id, title, createdAt, updatedAt)
+                    VALUES ('default', 'Đoạn chat cũ', 0, 0)
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "ALTER TABLE chat_messages ADD COLUMN conversationId TEXT NOT NULL DEFAULT 'default'"
+                )
+                db.execSQL(
+                    "ALTER TABLE chat_messages ADD COLUMN type TEXT NOT NULL DEFAULT 'TEXT'"
+                )
+                db.execSQL(
+                    "ALTER TABLE chat_messages ADD COLUMN suggestedRecipesJson TEXT NOT NULL DEFAULT '[]'"
+                )
+            }
+        }
+    }
 }

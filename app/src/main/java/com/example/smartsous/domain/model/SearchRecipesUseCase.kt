@@ -2,9 +2,13 @@ package com.example.smartsous.domain.usecase
 
 import com.example.smartsous.domain.model.Recipe
 import com.example.smartsous.domain.model.SearchFilter
+import java.text.Normalizer
 import javax.inject.Inject
 
 class SearchRecipesUseCase @Inject constructor() {
+
+    private val combiningMarksRegex = "\\p{Mn}+".toRegex()
+    private val whitespaceRegex = "\\s+".toRegex()
 
     // Nhận list recipes + filter → trả về list đã lọc + sort
     operator fun invoke(
@@ -29,13 +33,19 @@ class SearchRecipesUseCase @Inject constructor() {
 
     private fun matchesQuery(recipe: Recipe, query: String): Boolean {
         if (query.isBlank()) return true
-        val q = query.trim().lowercase()
-        return recipe.name.lowercase().contains(q)
-                || recipe.description.lowercase().contains(q)
-                || recipe.tags.any { it.lowercase().contains(q) }
-                || recipe.cuisine.lowercase().contains(q)
-                || recipe.ingredients.any { it.name.lowercase().contains(q) }
+        val q = query.normalizeForSearch()
+        return recipe.name.normalizeForSearch().contains(q)
+                || recipe.description.normalizeForSearch().contains(q)
+                || recipe.tags.any { it.normalizeForSearch().contains(q) }
+                || recipe.cuisine.normalizeForSearch().contains(q)
+                || recipe.ingredients.any { it.name.normalizeForSearch().contains(q) }
     }
+
+    private fun String.normalizeForSearch(): String =
+        Normalizer.normalize(trim().lowercase(), Normalizer.Form.NFD)
+            .replace(combiningMarksRegex, "")
+            .replace('đ', 'd')
+            .replace(whitespaceRegex, " ")
 
     private fun matchesCuisine(
         recipe: Recipe,

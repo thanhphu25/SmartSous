@@ -1,7 +1,10 @@
 package com.example.smartsous.feature.planner
 
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -13,7 +16,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -22,8 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.smartsous.core.common.Spacing
 import com.example.smartsous.core.ui.components.NutritionChart
 import com.example.smartsous.core.ui.components.RecipeListSkeleton
@@ -56,6 +66,9 @@ fun PlannerScreen(
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
 
+    // Trạng thái hiển thị hướng dẫn
+    var showHint by remember { mutableStateOf(true) }
+
     if (pullRefreshState.isRefreshing) {
         LaunchedEffect(true) {
             viewModel.refresh()
@@ -64,7 +77,20 @@ fun PlannerScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                // Bắt sự kiện chạm vào màn hình để ẩn hướng dẫn
+                awaitPointerEventScope {
+                    while (showHint) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        showHint = false
+                    }
+                }
+            }
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Text(
                 text = "Tổng quan Dinh dưỡng Tuần",
@@ -93,7 +119,7 @@ fun PlannerScreen(
                             date = date,
                             meals = dayMeals,
                             onDeleteMeal = { recipeId, mealType ->
-                                viewModel.removeMealFromPlan(recipeId, mealType, date)
+                                viewModel.removeMeal(recipeId, mealType, date)
                             },
                             onLongClick = {
                                 selectedDate = date
@@ -109,6 +135,29 @@ fun PlannerScreen(
             state = pullRefreshState,
             modifier = Modifier.align(Alignment.TopCenter)
         )
+
+        // Hướng dẫn ở góc dưới cùng bên trái
+        AnimatedVisibility(
+            visible = showHint,
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(Spacing.md)
+                .padding(bottom = 16.dp) // Tránh dính sát cạnh dưới
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f),
+                shape = RoundedCornerShape(8.dp),
+                shadowElevation = 4.dp
+            ) {
+                Text(
+                    text = "Nhấn giữ vào cột ngày để thêm món ăn",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
 
         if (showBottomSheet && selectedDate != null) {
             ModalBottomSheet(
@@ -161,12 +210,31 @@ fun DayColumn(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        meals.forEach { meal ->
-            MealItem(
-                meal = meal,
-                onDelete = { onDeleteMeal(meal.recipeId, meal.mealType) }
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+        if (meals.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 8.dp)
+                    .border(1.dp, Purple400.copy(alpha = 0.3f), RoundedCornerShape(4.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Nhấn giữ để thêm",
+                    tint = Purple400.copy(alpha = 0.5f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        } else {
+            meals.forEach { meal ->
+                MealItem(
+                    meal = meal,
+                    onDelete = { onDeleteMeal(meal.recipeId, meal.mealType) }
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -193,15 +261,14 @@ fun MealItem(meal: PlannerMealUiModel, onDelete: () -> Unit) {
             )
         }
         
-        // Nút xóa nhỏ ở góc
         Surface(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .size(12.dp)
+                .size(14.dp)
                 .offset(x = 2.dp, y = (-2).dp)
                 .clickable { onDelete() },
             shape = CircleShape,
-            color = Color.Red.copy(alpha = 0.7f)
+            color = Color.Red.copy(alpha = 0.8f)
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
@@ -239,13 +306,24 @@ fun RecipePickerContent(
                     headlineContent = { Text(recipe.name) },
                     supportingContent = { Text(recipe.cuisine) },
                     leadingContent = {
+                        val context = LocalContext.current
+                        val imageRequest = remember(recipe.imageUrl) {
+                            ImageRequest.Builder(context)
+                                .data(recipe.imageUrl)
+                                .listener(onError = { _, result ->
+                                    println("Coil Error: ${recipe.name} - ${result.throwable}")
+                                })
+                                .build()
+                        }
                         AsyncImage(
-                            model = recipe.imageUrl,
+                            model = imageRequest,
                             contentDescription = recipe.name,
                             modifier = Modifier
                                 .size(56.dp)
                                 .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            error = rememberVectorPainter(Icons.Default.BrokenImage),
+                            placeholder = rememberVectorPainter(Icons.Default.Image)
                         )
                     },
                     modifier = Modifier

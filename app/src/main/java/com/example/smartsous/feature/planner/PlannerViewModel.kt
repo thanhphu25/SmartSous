@@ -42,6 +42,9 @@ class PlannerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PlannerUiState())
     val uiState = _uiState.asStateFlow()
 
+    // Tập hợp các ID món ăn đang chờ xóa để tránh bị nháy khi Database chưa cập nhật kịp
+    private val pendingDeletions = MutableStateFlow<Set<String>>(emptySet())
+
     init {
         loadPlannerData()
     }
@@ -49,15 +52,16 @@ class PlannerViewModel @Inject constructor(
     private fun loadPlannerData() {
         val startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val weekDates = (0..6).map { startOfWeek.plusDays(it.toLong()) }
-        
+
         _uiState.update { it.copy(weekDates = weekDates, isLoading = true) }
 
+        // Kết hợp luồng dữ liệu từ Repo và danh sách chờ xóa
         combine(
-            mealPlanRepository.getMealPlanForWeek(startOfWeek),
-            recipeRepository.getAllRecipes()
-        ) { mealPlans, allRecipes ->
+            mealPlanRepository.getMealPlanForWeek(startOfWeek).distinctUntilChanged(),
+            recipeRepository.getAllRecipes().distinctUntilChanged(),
+            pendingDeletions
+        ) { mealPlans, allRecipes, deletions ->
             val recipeMap = allRecipes.associateBy { it.id }
-            
             val uiMeals = mutableListOf<PlannerMealUiModel>()
             var totalCal = 0f
             var totalPro = 0f
@@ -66,18 +70,19 @@ class PlannerViewModel @Inject constructor(
             mealPlans.forEach { plan ->
                 plan.meals.forEach { (mealType, recipeIds) ->
                     recipeIds.forEach { recipeId ->
-                        recipeMap[recipeId]?.let { recipe ->
-                            uiMeals.add(
-                                PlannerMealUiModel(
-                                    recipeId = recipe.id,
-                                    name = recipe.name,
-                                    date = plan.date,
-                                    mealType = mealType
+                        // Tạo key duy nhất cho mỗi món trong lịch
+                        val itemKey = "$recipeId-${plan.date}-$mealType"
+
+                        // Chỉ xử lý nếu món này không nằm trong danh sách đang chờ xóa
+                        if (!deletions.contains(itemKey)) {
+                            recipeMap[recipeId]?.let { recipe ->
+                                uiMeals.add(
+                                    PlannerMealUiModel(recipe.id, recipe.name, plan.date, mealType)
                                 )
-                            )
-                            totalCal += recipe.nutrition.calories.toFloat()
-                            totalPro += recipe.nutrition.protein.toFloat()
-                            totalCarb += recipe.nutrition.carbs.toFloat()
+                                totalCal += recipe.nutrition.calories.toFloat()
+                                totalPro += recipe.nutrition.protein.toFloat()
+                                totalCarb += recipe.nutrition.carbs.toFloat()
+                            }
                         }
                     }
                 }
@@ -89,10 +94,10 @@ class PlannerViewModel @Inject constructor(
                 NutritionData("Carbs", totalCarb, "g", Coral400)
             )
 
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
-                    isLoading = false, 
-                    plannedMeals = uiMeals, 
+                    isLoading = false,
+                    plannedMeals = uiMeals,
                     nutritionData = nutrition,
                     allRecipes = allRecipes
                 )
@@ -102,13 +107,23 @@ class PlannerViewModel @Inject constructor(
 
     fun addRecipeToPlan(recipeId: String, mealType: MealType, date: LocalDate) {
         viewModelScope.launch {
+            // Khi thêm món, đảm bảo xóa khỏi danh sách chờ xóa nếu có
+            val itemKey = "$recipeId-$date-$mealType"
+            pendingDeletions.update { it - itemKey }
             mealPlanRepository.addRecipeToPlan(date, mealType, recipeId)
         }
     }
 
-    fun removeMealFromPlan(recipeId: String, mealType: MealType, date: LocalDate) {
+    fun removeMeal(recipeId: String, mealType: MealType, date: LocalDate) {
+        val itemKey = "$recipeId-$date-$mealType"
+
+        // Bước 1: Đưa vào danh sách chờ xóa ngay lập tức (Optimistic UI)
+        pendingDeletions.update { it + itemKey }
+
         viewModelScope.launch {
+            // Bước 2: Thực hiện xóa trong Repository
             mealPlanRepository.removeRecipeFromPlan(date, mealType, recipeId)
+
         }
     }
 

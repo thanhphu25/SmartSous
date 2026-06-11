@@ -124,13 +124,13 @@ fun PantryScreen(
 
             // ── Expiry warning banner ──────────────────────
             AnimatedVisibility(visible = uiState.expiringCount > 0) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.md)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Coral400.copy(alpha = 0.12f))
-                        .padding(Spacing.sm),
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.md)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Coral400.copy(alpha = 0.15f))
+                            .padding(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
@@ -315,16 +315,19 @@ fun IngredientRow(
 ) {
     val expiryStatus = getExpiryStatus(ingredient.expiryDate)
 
-    Row(
+    androidx.compose.material3.Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { onClick() }
-            .padding(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
+        Row(
+            modifier = Modifier.padding(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -379,6 +382,7 @@ fun IngredientRow(
             )
         }
     }
+}
 }
 
 private fun getExpiryStatus(expiryDate: LocalDate?): Pair<String, Color>? {

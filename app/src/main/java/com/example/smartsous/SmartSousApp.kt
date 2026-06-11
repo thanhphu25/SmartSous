@@ -19,6 +19,7 @@ import com.example.smartsous.domain.usecase.SyncPantryUseCase
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -38,9 +39,11 @@ class SmartSousApp : Application(), Configuration.Provider, ImageLoaderFactory {
         super.onCreate()
 
         NotificationChannels.createAll(this)
-        workerScheduler.scheduleAll()
 
         CoroutineScope(Dispatchers.IO).launch {
+            val notificationSettings = dataStoreManager.notificationPreferenceFlow.first()
+            workerScheduler.scheduleAll(notificationSettings)
+
             try {
                 authManager.loginAnonymously()
             } catch (e: Exception) {

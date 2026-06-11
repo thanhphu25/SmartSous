@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
@@ -37,19 +36,15 @@ class SearchViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState = _uiState.asStateFlow()
 
-    // Filter state riêng để debounce query text
     private val _filter = MutableStateFlow(SearchFilter())
 
     init {
         observeSearch()
     }
 
-    @OptIn(FlowPreview::class)
     private fun observeSearch() {
-        // Combine: allRecipes + filter → filtered results
         combine(
             recipeRepository.getAllRecipes(),
-            // Debounce 300ms chỉ cho query text
             _filter.debounce { filter ->
                 if (filter.query.isNotEmpty()) 300L else 0L
             }
@@ -66,52 +61,42 @@ class SearchViewModel @Inject constructor(
         }.launchIn(viewModelScope)
     }
 
-    // User gõ vào search box
     fun onQueryChange(query: String) {
-        _filter.update { it.copy(query = query) }
+        updateFilter { it.copy(query = query) }
     }
 
-    // Toggle cuisine filter
     fun onCuisineToggle(cuisine: String) {
-        _filter.update { filter ->
+        updateFilter { filter ->
             val current = filter.selectedCuisines.toMutableSet()
-            if (cuisine in current) current.remove(cuisine)
-            else current.add(cuisine)
+            if (cuisine in current) current.remove(cuisine) else current.add(cuisine)
             filter.copy(selectedCuisines = current)
         }
     }
 
-    // Toggle difficulty filter
     fun onDifficultyToggle(difficulty: Difficulty) {
-        _filter.update { filter ->
+        updateFilter { filter ->
             val current = filter.selectedDifficulty.toMutableSet()
-            if (difficulty in current) current.remove(difficulty)
-            else current.add(difficulty)
+            if (difficulty in current) current.remove(difficulty) else current.add(difficulty)
             filter.copy(selectedDifficulty = current)
         }
     }
 
-    // Set max cooking time
     fun onCookingTimeSelect(maxMinutes: Int?) {
-        _filter.update { it.copy(maxCookingTime = maxMinutes) }
+        updateFilter { it.copy(maxCookingTime = maxMinutes) }
     }
 
-    // Set max calories
     fun onCaloriesSelect(maxCalories: Int?) {
-        _filter.update { it.copy(maxCalories = maxCalories) }
+        updateFilter { it.copy(maxCalories = maxCalories) }
     }
 
-    // Toggle chỉ hiện yêu thích
     fun onFavoritesToggle() {
-        _filter.update { it.copy(onlyFavorites = !it.onlyFavorites) }
+        updateFilter { it.copy(onlyFavorites = !it.onlyFavorites) }
     }
 
-    // Xoá toàn bộ filter
     fun clearFilter() {
-        _filter.update { SearchFilter() }
+        updateFilter { SearchFilter() }
     }
 
-    // Mở/đóng filter bottom sheet
     fun toggleFilterSheet() {
         _uiState.update { it.copy(isFilterSheetOpen = !it.isFilterSheetOpen) }
     }
@@ -120,10 +105,17 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(isFilterSheetOpen = false) }
     }
 
-    // Toggle favorite một recipe
     fun toggleFavorite(recipeId: String, isFavorite: Boolean) {
         safeLaunch {
             recipeRepository.toggleFavorite(recipeId, !isFavorite)
+        }
+    }
+
+    private fun updateFilter(transform: (SearchFilter) -> SearchFilter) {
+        val updatedFilter = transform(_filter.value)
+        _filter.value = updatedFilter
+        _uiState.update { state ->
+            state.copy(filter = updatedFilter)
         }
     }
 }

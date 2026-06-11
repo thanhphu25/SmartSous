@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.smartsous.core.common.DataStoreManager
 import com.example.smartsous.data.local.dao.IngredientDao
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -17,6 +18,7 @@ class ExpiryCheckWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val ingredientDao: IngredientDao,
+    private val dataStoreManager: DataStoreManager,
     private val notificationHelper: NotificationHelper
 ) : CoroutineWorker(context, params) {
 
@@ -28,6 +30,12 @@ class ExpiryCheckWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         return try {
             Log.d(TAG, "ExpiryCheckWorker started")
+
+            val notifications = dataStoreManager.notificationPreferenceFlow.first()
+            if (!notifications.expiryRemindersEnabled) {
+                Log.d(TAG, "Expiry reminders disabled")
+                return Result.success()
+            }
 
             val today = LocalDate.now()
             val threshold = today

@@ -44,6 +44,34 @@ class SearchRecipesUseCaseTest {
     }
 
     @Test
+    fun invoke_matchesVietnameseQueryWithAndWithoutDiacritics() {
+        val recipes = listOf(
+            recipe(
+                id = "bun-bo-hue",
+                name = "Bún bò Huế",
+                description = "Món nước cay miền Trung",
+                ingredients = listOf(
+                    RecipeIngredient("bún", 200.0, "g"),
+                    RecipeIngredient("thịt bò", 150.0, "g")
+                )
+            ),
+            recipe(
+                id = "pho-ga",
+                name = "Phở gà",
+                ingredients = listOf(RecipeIngredient("gà", 150.0, "g"))
+            )
+        )
+
+        val accentedResult = useCase(recipes, SearchFilter(query = "bún bò"))
+        val plainResult = useCase(recipes, SearchFilter(query = "bun bo"))
+        val uppercaseResult = useCase(recipes, SearchFilter(query = "BÚN BÒ"))
+
+        assertEquals(listOf("bun-bo-hue"), accentedResult.map { it.id })
+        assertEquals(listOf("bun-bo-hue"), plainResult.map { it.id })
+        assertEquals(listOf("bun-bo-hue"), uppercaseResult.map { it.id })
+    }
+
+    @Test
     fun invoke_appliesCuisineDifficultyTimeCaloriesAndFavoriteFilters() {
         val recipes = listOf(
             recipe(

@@ -1,6 +1,8 @@
 package com.example.smartsous.feature.search
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,8 +31,13 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +55,8 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val searchFocusRequester = remember { FocusRequester() }
 
     Column(
         modifier = modifier.fillMaxSize()
@@ -64,7 +73,14 @@ fun SearchScreen(
             OutlinedTextField(
                 value = uiState.filter.query,
                 onValueChange = { viewModel.onQueryChange(it) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(searchFocusRequester)
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused) {
+                            keyboardController?.show()
+                        }
+                    },
                 placeholder = { Text("Tìm món ăn, nguyên liệu...") },
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null)
@@ -77,6 +93,14 @@ fun SearchScreen(
                     }
                 },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        keyboardController?.hide()
+                    }
+                ),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Purple400

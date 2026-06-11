@@ -36,6 +36,7 @@ class HomeViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
+    private val pendingFavoriteOverrides = MutableStateFlow<Map<String, Boolean>>(emptyMap())
 
     init {
         observeSuggestions()
@@ -48,10 +49,12 @@ class HomeViewModel @Inject constructor(
         combine(
             recipeRepository.getAllRecipes(),
             pantryRepository.getAllIngredients(),
-            dataStoreManager.userPreferencesFlow
-        ) { recipes, pantryItems, preferences ->
+            dataStoreManager.userPreferencesFlow,
+            pendingFavoriteOverrides
+        ) { recipes, pantryItems, preferences, favoriteOverrides ->
+            val recipesWithFavorites = recipes.applyFavoriteOverrides(favoriteOverrides)
             val suggested = suggestMealsUseCase(
-                allRecipes = recipes,
+                allRecipes = recipesWithFavorites,
                 pantryIngredients = pantryItems,
                 userPreference = preferences,
                 topN = 10
@@ -59,7 +62,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update { state ->
                 state.copy(
                     suggestedRecipes = suggested,
-                    allRecipes = recipes,
+                    allRecipes = recipesWithFavorites,
                     isLoading = false
                 )
             }
@@ -73,8 +76,42 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleFavorite(recipeId: String, isFavorite: Boolean) {
+        val newFavoriteValue = !isFavorite
+        pendingFavoriteOverrides.update { overrides ->
+            overrides + (recipeId to newFavoriteValue)
+        }
+        _uiState.update { state ->
+            state.withFavorite(recipeId, newFavoriteValue)
+        }
         safeLaunch {
-            recipeRepository.toggleFavorite(recipeId, !isFavorite)
+            try {
+                recipeRepository.toggleFavorite(recipeId, newFavoriteValue)
+            } finally {
+                pendingFavoriteOverrides.update { overrides ->
+                    overrides - recipeId
+                }
+            }
         }
     }
 }
+
+private fun List<Recipe>.applyFavoriteOverrides(
+    overrides: Map<String, Boolean>
+): List<Recipe> =
+    map { recipe ->
+        overrides[recipe.id]?.let { recipe.copy(isFavorite = it) } ?: recipe
+    }
+
+private fun HomeUiState.withFavorite(recipeId: String, isFavorite: Boolean): HomeUiState =
+    copy(
+        allRecipes = allRecipes.map { recipe ->
+            if (recipe.id == recipeId) recipe.copy(isFavorite = isFavorite) else recipe
+        },
+        suggestedRecipes = suggestedRecipes.map { suggested ->
+            if (suggested.recipe.id == recipeId) {
+                suggested.copy(recipe = suggested.recipe.copy(isFavorite = isFavorite))
+            } else {
+                suggested
+            }
+        }
+    )

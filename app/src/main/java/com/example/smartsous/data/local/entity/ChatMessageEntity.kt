@@ -6,7 +6,10 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "chat_messages")
 data class ChatMessageEntity(
     @PrimaryKey val id: String,
+    val conversationId: String,
     val content: String,
     val role: String,           // "USER" | "ASSISTANT"
-    val timestamp: Long
+    val timestamp: Long,
+    val type: String,
+    val suggestedRecipesJson: String
 )

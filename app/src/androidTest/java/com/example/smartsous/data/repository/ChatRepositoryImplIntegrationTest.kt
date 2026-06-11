@@ -23,6 +23,7 @@ class ChatRepositoryImplIntegrationTest {
 
     private lateinit var database: SmartSousDatabase
     private lateinit var repository: ChatRepositoryImpl
+    private lateinit var conversationId: String
 
     @Before
     fun setUp() {
@@ -38,6 +39,7 @@ class ChatRepositoryImplIntegrationTest {
             geminiDataSource = GeminiDataSource(),
             chatMessageDao = database.chatMessageDao()
         )
+        conversationId = runBlocking { repository.createConversation("Test chat") }
     }
 
     @After
@@ -53,7 +55,8 @@ class ChatRepositoryImplIntegrationTest {
                 content = "Hello",
                 role = MessageRole.ASSISTANT,
                 timestamp = 2L
-            )
+            ),
+            conversationId
         )
         repository.saveMessage(
             ChatMessage(
@@ -61,27 +64,32 @@ class ChatRepositoryImplIntegrationTest {
                 content = "What should I cook?",
                 role = MessageRole.USER,
                 timestamp = 1L
-            )
+            ),
+            conversationId
         )
 
-        val history = repository.getChatHistory().first()
+        val history = repository.getChatHistory(conversationId).first()
 
         assertEquals(listOf("user-1", "assistant-1"), history.map { it.id })
         assertEquals(listOf(MessageRole.USER, MessageRole.ASSISTANT), history.map { it.role })
     }
 
     @Test
-    fun saveMessage_ignoresRecipeSuggestionMessages() = runBlocking {
+    fun saveMessage_persistsRecipeSuggestionMessages() = runBlocking {
         repository.saveMessage(
             ChatMessage(
                 id = "suggestion-1",
                 content = "Recipe suggestions",
                 role = MessageRole.ASSISTANT,
                 type = MessageType.RECIPE_SUGGESTION
-            )
+            ),
+            conversationId
         )
 
-        assertTrue(repository.getChatHistory().first().isEmpty())
+        val history = repository.getChatHistory(conversationId).first()
+
+        assertEquals(1, history.size)
+        assertEquals(MessageType.RECIPE_SUGGESTION, history.first().type)
     }
 
     @Test
@@ -92,11 +100,31 @@ class ChatRepositoryImplIntegrationTest {
                 content = "Test",
                 role = MessageRole.USER,
                 timestamp = 1L
-            )
+            ),
+            conversationId
         )
 
-        repository.clearHistory()
+        repository.clearHistory(conversationId)
 
-        assertTrue(repository.getChatHistory().first().isEmpty())
+        assertTrue(repository.getChatHistory(conversationId).first().isEmpty())
+    }
+
+    @Test
+    fun deleteConversation_removesMessagesAndReturnsAnotherConversation() = runBlocking {
+        val secondConversationId = repository.createConversation("Second chat")
+        repository.saveMessage(
+            ChatMessage(
+                id = "user-1",
+                content = "Test",
+                role = MessageRole.USER,
+                timestamp = 1L
+            ),
+            conversationId
+        )
+
+        val nextConversationId = repository.deleteConversation(conversationId)
+
+        assertEquals(secondConversationId, nextConversationId)
+        assertTrue(repository.getChatHistory(conversationId).first().isEmpty())
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.smartsous.core.common.Spacing
@@ -58,7 +60,8 @@ import java.time.format.DateTimeFormatter
 fun PlannerScreen(
     viewModel: PlannerViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val pullRefreshState = rememberPullToRefreshState()
 
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -161,15 +164,21 @@ fun PlannerScreen(
 
         if (showBottomSheet && selectedDate != null) {
             ModalBottomSheet(
-                onDismissRequest = { showBottomSheet = false },
+                onDismissRequest = { 
+                    showBottomSheet = false
+                    viewModel.onSearchQueryChange("") // Reset search when closed
+                },
                 sheetState = sheetState
             ) {
                 RecipePickerContent(
                     recipes = uiState.allRecipes,
+                    searchQuery = searchQuery,
+                    onSearchChange = viewModel::onSearchQueryChange,
                     onRecipeSelected = { recipeId ->
                         viewModel.addRecipeToPlan(recipeId, MealType.LUNCH, selectedDate!!)
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             showBottomSheet = false
+                            viewModel.onSearchQueryChange("") // Reset search after adding
                         }
                     }
                 )
@@ -283,6 +292,8 @@ fun MealItem(meal: PlannerMealUiModel, onDelete: () -> Unit) {
 @Composable
 fun RecipePickerContent(
     recipes: List<Recipe>,
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
     onRecipeSelected: (String) -> Unit
 ) {
     Column(
@@ -297,8 +308,27 @@ fun RecipePickerContent(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            placeholder = { Text("Tìm tên món, nguyên liệu...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchChange("") }) {
+                        Icon(Icons.Default.Close, contentDescription = "Xóa")
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
+        )
+
         LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(recipes) { recipe ->

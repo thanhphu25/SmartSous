@@ -13,9 +13,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -29,7 +27,9 @@ class MealPlanRepositoryImpl @Inject constructor(
     private val dao: MealPlanDao
 ) : IMealPlanRepository {
 
-    private val col get() = firestore.collection("users").document(auth.uid!!).collection("mealPlans")
+    private val col get() = auth.uid?.let { uid ->
+        firestore.collection("users").document(uid).collection("mealPlans")
+    }
 
     override fun getMealPlanForWeek(startDate: LocalDate): Flow<List<MealPlan>> {
         val endDate = startDate.plusDays(6)
@@ -38,9 +38,9 @@ class MealPlanRepositoryImpl @Inject constructor(
         val fetchStart = startDate.minusDays(15).toString()
         val fetchEnd = endDate.plusDays(15).toString()
         
-        val listener = col.whereGreaterThanOrEqualTo("date", fetchStart)
-            .whereLessThanOrEqualTo("date", fetchEnd)
-            .addSnapshotListener { snap, err ->
+        col?.whereGreaterThanOrEqualTo("date", fetchStart)
+            ?.whereLessThanOrEqualTo("date", fetchEnd)
+            ?.addSnapshotListener { snap, err ->
                 if (err != null) return@addSnapshotListener
                 val dtos = snap?.toObjects(MealPlanDto::class.java) ?: emptyList()
                 val plans = dtos.map { it.toDomain() }
@@ -70,7 +70,7 @@ class MealPlanRepositoryImpl @Inject constructor(
         }
 
         // 2. Sync to Firestore
-        val docRef = col.document(dateStr)
+        val docRef = col?.document(dateStr) ?: return
         try {
             firestore.runTransaction { tx ->
                 val snap = tx.get(docRef)
@@ -100,7 +100,7 @@ class MealPlanRepositoryImpl @Inject constructor(
         }
 
         // 2. Sync to Firestore
-        val docRef = col.document(dateStr)
+        val docRef = col?.document(dateStr) ?: return
         try {
             firestore.runTransaction { tx ->
                 val snap = tx.get(docRef)

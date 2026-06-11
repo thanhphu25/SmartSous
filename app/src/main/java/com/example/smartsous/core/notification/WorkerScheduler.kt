@@ -5,6 +5,7 @@ import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.smartsous.domain.model.NotificationPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -15,22 +16,29 @@ import javax.inject.Singleton
 class WorkerScheduler @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    // Schedule tất cả workers — gọi 1 lần trong SmartSousApp
-    fun scheduleAll() {
-        scheduleExpiryCheck()
-        scheduleMealReminder()
+    fun scheduleAll(settings: NotificationPreference = NotificationPreference()) {
+        if (settings.expiryRemindersEnabled) {
+            scheduleExpiryCheck()
+        } else {
+            cancelExpiryCheck()
+        }
+
+        if (settings.mealRemindersEnabled) {
+            scheduleMealReminder(
+                hour = settings.mealReminderHour,
+                minute = settings.mealReminderMinute
+            )
+        } else {
+            cancelMealReminder()
+        }
     }
 
-    // ExpiryCheck: chạy mỗi ngày lúc 8:00 sáng
-    private fun scheduleExpiryCheck() {
+    fun scheduleExpiryCheck() {
         val request = PeriodicWorkRequestBuilder<ExpiryCheckWorker>(
             repeatInterval = 24,
             repeatIntervalTimeUnit = TimeUnit.HOURS
         )
-            .setInitialDelay(
-                delayUntilHour(hour = 8, minute = 0),
-                TimeUnit.MILLISECONDS
-            )
+            .setInitialDelay(delayUntilHour(hour = 8, minute = 0), TimeUnit.MILLISECONDS)
             .setConstraints(
                 Constraints.Builder()
                     .setRequiresBatteryNotLow(false)
@@ -40,34 +48,43 @@ class WorkerScheduler @Inject constructor(
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             ExpiryCheckWorker.WORK_NAME,
-            // KEEP: nếu đã schedule rồi thì giữ nguyên, không tạo lại
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request
         )
     }
 
-    // MealReminder: chạy mỗi ngày lúc 7:30 sáng
-    private fun scheduleMealReminder() {
+    fun cancelExpiryCheck() {
+        WorkManager.getInstance(context).cancelUniqueWork(ExpiryCheckWorker.WORK_NAME)
+    }
+
+    fun scheduleMealReminder(
+        hour: Int = MealReminderPolicy.REMINDER_HOUR,
+        minute: Int = MealReminderPolicy.REMINDER_MINUTE
+    ) {
         val request = PeriodicWorkRequestBuilder<MealReminderWorker>(
             repeatInterval = 24,
             repeatIntervalTimeUnit = TimeUnit.HOURS
         )
             .setInitialDelay(
-                delayUntilHour(hour = 7, minute = 30),
+                delayUntilHour(
+                    hour = hour.coerceIn(0, 23),
+                    minute = minute.coerceIn(0, 59)
+                ),
                 TimeUnit.MILLISECONDS
             )
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             MealReminderWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request
         )
     }
 
-    // Tính số millisecond từ bây giờ đến giờ cụ thể ngày mai
-    // VD: bây giờ là 10:00, muốn 8:00 sáng mai → delay = 22 tiếng
-    // VD: bây giờ là 6:00, muốn 8:00 sáng nay → delay = 2 tiếng
+    fun cancelMealReminder() {
+        WorkManager.getInstance(context).cancelUniqueWork(MealReminderWorker.WORK_NAME)
+    }
+
     private fun delayUntilHour(hour: Int, minute: Int): Long {
         val now = Calendar.getInstance()
         val target = Calendar.getInstance().apply {
@@ -76,7 +93,6 @@ class WorkerScheduler @Inject constructor(
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        // Nếu giờ target đã qua hôm nay → schedule sang ngày mai
         if (target.before(now)) {
             target.add(Calendar.DAY_OF_MONTH, 1)
         }

@@ -20,6 +20,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext ctx: Context): SmartSousDatabase =
         Room.databaseBuilder(ctx, SmartSousDatabase::class.java, "smartsous.db")
+            .addMigrations(SmartSousDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration() // chỉ dùng khi dev, bỏ khi release
             .build()
 

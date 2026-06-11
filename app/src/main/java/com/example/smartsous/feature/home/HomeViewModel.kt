@@ -2,6 +2,7 @@ package com.example.smartsous.feature.home
 
 import androidx.lifecycle.viewModelScope
 import com.example.smartsous.core.common.BaseViewModel
+import com.example.smartsous.core.common.DataStoreManager
 import com.example.smartsous.data.repository.RecipeRepositoryImpl
 import com.example.smartsous.domain.model.Recipe
 import com.example.smartsous.domain.model.SuggestedRecipe
@@ -29,7 +30,8 @@ class HomeViewModel @Inject constructor(
     private val recipeRepository: IRecipeRepository,
     private val pantryRepository: IPantryRepository,
     private val suggestMealsUseCase: SuggestMealsUseCase,
-    private val recipeRepositoryImpl: RecipeRepositoryImpl
+    private val recipeRepositoryImpl: RecipeRepositoryImpl,
+    private val dataStoreManager: DataStoreManager
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -45,11 +47,13 @@ class HomeViewModel @Inject constructor(
         // Mỗi khi 1 trong 2 thay đổi → tính lại gợi ý
         combine(
             recipeRepository.getAllRecipes(),
-            pantryRepository.getAllIngredients()
-        ) { recipes, pantryItems ->
+            pantryRepository.getAllIngredients(),
+            dataStoreManager.userPreferencesFlow
+        ) { recipes, pantryItems, preferences ->
             val suggested = suggestMealsUseCase(
                 allRecipes = recipes,
                 pantryIngredients = pantryItems,
+                userPreference = preferences,
                 topN = 10
             )
             _uiState.update { state ->

@@ -138,7 +138,7 @@ private fun FavoriteGridCard(
             .aspectRatio(0.85f)  // hơi đứng hơn vuông
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Box {
             // Ảnh full card

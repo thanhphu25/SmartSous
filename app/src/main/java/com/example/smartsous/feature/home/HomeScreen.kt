@@ -186,7 +186,7 @@ private fun HeroRecipeCard(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Gradient overlay từ dưới lên — để text đọc được
+            // Gradient overlay từ nửa dưới lên — để text đọc được nổi bật hơn
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -194,9 +194,9 @@ private fun HeroRecipeCard(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.75f)
-                            ),
-                            startY = 80f
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.85f)
+                            )
                         )
                     )
             )
@@ -263,10 +263,11 @@ private fun SuggestedMiniCard(
 
     Card(
         modifier = modifier
-            .width(150.dp)
+            .width(160.dp)
+            .padding(bottom = Spacing.sm) // Khoảng trống cho shadow
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column {
             Box {
@@ -276,7 +277,7 @@ private fun SuggestedMiniCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp)
+                        .height(130.dp) // Tăng chiều cao để ảnh không lùn
                 )
                 if (suggested.matchPercent == 100) {
                     Box(
@@ -326,8 +327,8 @@ private fun SuggestionBadge(
 
     Box(
         modifier = modifier
-            .background(color.copy(alpha = 0.9f), RoundedCornerShape(20.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .background(color.copy(alpha = 0.8f), RoundedCornerShape(percent = 50)) // Bo tròn hẳn dạng pill
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
             text = text,

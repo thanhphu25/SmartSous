@@ -152,14 +152,21 @@ class SmartSousActivity : ComponentActivity() {
                 )
                 val fabRoutes = setOf("home", "search", "planner", "favorites", "pantry")
                 var chromeVisible by remember { mutableStateOf(false) }
+                var chromeUnlocked by remember { mutableStateOf(false) }
 
                 LaunchedEffect(currentRoute) {
                     if (currentRoute in bottomBarRoutes) {
-                        chromeVisible = false
-                        delay(180)
+                        if (!chromeUnlocked) {
+                            chromeVisible = false
+                            delay(180)
+                            chromeUnlocked = true
+                        }
                         chromeVisible = true
                     } else {
                         chromeVisible = false
+                        if (currentRoute == "splash" || currentRoute == "onboarding") {
+                            chromeUnlocked = false
+                        }
                     }
                 }
 

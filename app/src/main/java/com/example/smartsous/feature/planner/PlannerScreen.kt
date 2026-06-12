@@ -47,6 +47,7 @@ import com.example.smartsous.core.ui.components.NutritionChart
 import com.example.smartsous.core.ui.components.RecipeListSkeleton
 import com.example.smartsous.domain.model.MealType
 import com.example.smartsous.domain.model.Recipe
+import com.example.smartsous.domain.usecase.RecipeNameSearchMatcher
 import com.example.smartsous.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -286,8 +287,7 @@ fun RecipePickerContent(
     var selectedMealType by remember { mutableStateOf(MealType.LUNCH) }
     
     val filteredRecipes = remember(searchQuery, recipes) {
-        if (searchQuery.isBlank()) recipes
-        else recipes.filter { it.name.contains(searchQuery, ignoreCase = true) }
+        RecipeNameSearchMatcher.filterByName(recipes, searchQuery)
     }
 
     Column(

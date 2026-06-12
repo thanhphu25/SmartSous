@@ -70,7 +70,7 @@ class SearchRecipesUseCaseTest {
     }
 
     @Test
-    fun invoke_matchesQueryFromIngredientName() {
+    fun invoke_doesNotMatchQueryFromIngredientName() {
         val recipes = listOf(
             recipe(
                 id = "salad-ca-hoi",
@@ -78,17 +78,17 @@ class SearchRecipesUseCaseTest {
                 ingredients = listOf(RecipeIngredient("Cá hồi", 150.0, "g"))
             ),
             recipe(
-                id = "bo-vien-sot-ca-chua",
-                name = "Bò viên sốt cà chua",
-                ingredients = listOf(RecipeIngredient("cà chua", 2.0, "quả"))
+                id = "ca-hoi-ap-chao",
+                name = "Cá hồi áp chảo",
+                ingredients = listOf(RecipeIngredient("phi lê cá", 150.0, "g"))
             )
         )
 
         val accentedResult = useCase(recipes, SearchFilter(query = "Cá hồi"))
         val plainResult = useCase(recipes, SearchFilter(query = "ca hoi"))
 
-        assertEquals(listOf("salad-ca-hoi"), accentedResult.map { it.id })
-        assertEquals(listOf("salad-ca-hoi"), plainResult.map { it.id })
+        assertEquals(listOf("ca-hoi-ap-chao"), accentedResult.map { it.id })
+        assertEquals(listOf("ca-hoi-ap-chao"), plainResult.map { it.id })
     }
 
     @Test

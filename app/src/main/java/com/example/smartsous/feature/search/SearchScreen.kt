@@ -81,7 +81,7 @@ fun SearchScreen(
                             keyboardController?.show()
                         }
                     },
-                placeholder = { Text("Tìm món ăn, nguyên liệu...") },
+                placeholder = { Text("Tìm tên món ăn...") },
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null)
                 },
@@ -293,7 +293,7 @@ private fun SearchStartContent(
         )
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            text = "Chọn gợi ý bên dưới hoặc nhập tên món, nguyên liệu",
+            text = "Chọn gợi ý bên dưới hoặc nhập tên món",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

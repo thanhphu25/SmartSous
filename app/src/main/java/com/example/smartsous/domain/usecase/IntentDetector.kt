@@ -108,7 +108,7 @@ class IntentDetector @Inject constructor() {
 
         // Thử tách bằng separator trước
         val bySeparator = lower
-            .split(Regex("[,+&\\nvà/]"))
+            .split(Regex("[,+&\\n/]|\\s+và\\s+"))
             .map { it.trim() }
             .filter { it.isNotBlank() && it.length >= 2 && it !in stopWords }
 

@@ -41,11 +41,19 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.smartsous.BuildConfig
 import com.example.smartsous.core.common.Spacing
+import com.example.smartsous.core.ui.components.AppTextField
 import com.example.smartsous.domain.model.NotificationPreference
 import com.example.smartsous.domain.model.UserPreference
 import com.example.smartsous.ui.theme.Amber400
@@ -74,6 +83,15 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    
+    var devClickCount by remember { mutableIntStateOf(0) }
+    var isDeveloperModeEnabled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(devClickCount) {
+        if (devClickCount >= 7) {
+            isDeveloperModeEnabled = true
+        }
+    }
 
     Column(
         modifier = modifier
@@ -116,11 +134,8 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(Spacing.md))
 
-        CookingStatsCard(uiState)
-
-        Spacer(Modifier.height(Spacing.md))
-
-        NotificationSettingsCard(
+        PantryAndNotificationCard(
+            uiState = uiState,
             notifications = uiState.notifications,
             onExpiryEnabledChange = viewModel::setExpiryRemindersEnabled,
             onMealEnabledChange = viewModel::setMealRemindersEnabled,
@@ -128,7 +143,15 @@ fun SettingsScreen(
             onMinuteChange = viewModel::setMealReminderMinute
         )
 
-        if (BuildConfig.DEBUG) {
+        Spacer(Modifier.height(Spacing.md))
+
+        AiSettingsCard(
+            preferences = uiState.preferences,
+            onApiKeyChange = viewModel::setAiApiKey,
+            onModelChange = viewModel::setAiModel
+        )
+
+        if (isDeveloperModeEnabled) {
             Spacer(Modifier.height(Spacing.md))
 
             DeveloperToolsCard(
@@ -136,29 +159,54 @@ fun SettingsScreen(
                 onTestExpiry = {
                     viewModel.testExpiryNotification()
                     scope.launch {
-                        snackbarHostState.showSnackbar(
-                            "ExpiryCheckWorker đã trigger, đợi vài giây"
-                        )
+                        snackbarHostState.showSnackbar("ExpiryCheckWorker đã trigger")
                     }
                 },
                 onTestMeal = {
                     viewModel.testMealReminder()
                     scope.launch {
-                        snackbarHostState.showSnackbar(
-                            "MealReminderWorker đã trigger, đợi vài giây"
-                        )
+                        snackbarHostState.showSnackbar("MealReminderWorker đã trigger")
                     }
                 },
                 onAddTestIngredient = {
                     viewModel.addTestExpiringIngredient()
                     scope.launch {
-                        snackbarHostState.showSnackbar(
-                            "Đã thêm nguyên liệu test hết hạn ngày mai"
-                        )
+                        snackbarHostState.showSnackbar("Đã thêm nguyên liệu test hết hạn")
+                    }
+                },
+                onAddTestMealPlan = {
+                    viewModel.addTestMealPlanForToday()
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Đã thêm test meal plan hôm nay")
+                    }
+                },
+                onResetSeed = {
+                    viewModel.resetSeedFlag()
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Đã reset seed flag")
                     }
                 }
             )
         }
+
+        Spacer(Modifier.height(Spacing.xl))
+
+        Text(
+            text = "Phiên bản ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.md)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { devClickCount++ },
+                        onLongPress = { isDeveloperModeEnabled = true }
+                    )
+                }
+                .padding(Spacing.sm),
+            textAlign = TextAlign.Center
+        )
 
         Spacer(Modifier.height(80.dp))
     }
@@ -279,37 +327,8 @@ private fun PreferencesCard(
 }
 
 @Composable
-private fun CookingStatsCard(uiState: SettingsUiState) {
-    SettingsCard(
-        title = "Thống kê nấu ăn",
-        subtitle = "Tổng quan nhanh từ dữ liệu hiện tại."
-    ) {
-        SettingsInfoRow(
-            icon = Icons.Default.Kitchen,
-            label = "Nguyên liệu trong tủ",
-            value = "${uiState.totalIngredients}"
-        )
-        SettingsInfoRow(
-            icon = Icons.Default.Warning,
-            label = "Sắp hết hạn",
-            value = "${uiState.expiringCount}",
-            valueColor = if (uiState.expiringCount > 0) Coral400 else Teal400
-        )
-        SettingsInfoRow(
-            icon = Icons.Default.Favorite,
-            label = "Món yêu thích",
-            value = "${uiState.favoriteRecipeCount}"
-        )
-        SettingsInfoRow(
-            icon = Icons.Default.Restaurant,
-            label = "Món trong kế hoạch tuần",
-            value = "${uiState.weeklyMealPlanCount}"
-        )
-    }
-}
-
-@Composable
-private fun NotificationSettingsCard(
+private fun PantryAndNotificationCard(
+    uiState: SettingsUiState,
     notifications: NotificationPreference,
     onExpiryEnabledChange: (Boolean) -> Unit,
     onMealEnabledChange: (Boolean) -> Unit,
@@ -317,9 +336,10 @@ private fun NotificationSettingsCard(
     onMinuteChange: (Int) -> Unit
 ) {
     SettingsCard(
-        title = "Thông báo",
-        subtitle = "Kiểm soát các nhắc nhở chính của SmartSous."
+        title = "Tủ lạnh & Nhắc hạn",
+        subtitle = "Cài đặt thông báo và quản lý nguyên liệu."
     ) {
+        SectionLabel("Thông báo")
         SwitchRow(
             title = "Nhắc nguyên liệu hết hạn",
             subtitle = "Gửi cảnh báo tại các mốc 3 ngày, 1 ngày và hôm nay.",
@@ -349,6 +369,33 @@ private fun NotificationSettingsCard(
             onDecrease = { onMinuteChange(notifications.mealReminderMinute - 5) },
             onIncrease = { onMinuteChange(notifications.mealReminderMinute + 5) }
         )
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        SectionLabel("Thống kê")
+        SettingsInfoRow(
+            icon = Icons.Default.Kitchen,
+            label = "Nguyên liệu trong tủ",
+            value = "${uiState.totalIngredients}"
+        )
+        SettingsInfoRow(
+            icon = Icons.Default.Warning,
+            label = "Sắp hết hạn",
+            value = "${uiState.expiringCount}",
+            valueColor = if (uiState.expiringCount > 0) Coral400 else Teal400
+        )
+        SettingsInfoRow(
+            icon = Icons.Default.Favorite,
+            label = "Món yêu thích",
+            value = "${uiState.favoriteRecipeCount}"
+        )
+        SettingsInfoRow(
+            icon = Icons.Default.Restaurant,
+            label = "Món trong kế hoạch tuần",
+            value = "${uiState.weeklyMealPlanCount}"
+        )
     }
 }
 
@@ -357,11 +404,13 @@ private fun DeveloperToolsCard(
     uiState: SettingsUiState,
     onTestExpiry: () -> Unit,
     onTestMeal: () -> Unit,
-    onAddTestIngredient: () -> Unit
+    onAddTestIngredient: () -> Unit,
+    onAddTestMealPlan: () -> Unit,
+    onResetSeed: () -> Unit
 ) {
     SettingsCard(
-        title = "Developer tools",
-        subtitle = "Chỉ hiển thị trong debug build."
+        title = "Chế độ nhà phát triển",
+        subtitle = "Các công cụ ẩn để debug ứng dụng."
     ) {
         NotificationTestButton(
             icon = Icons.Default.Warning,
@@ -392,13 +441,41 @@ private fun DeveloperToolsCard(
         Spacer(Modifier.height(Spacing.sm))
 
         NotificationTestButton(
-            icon = Icons.Default.BugReport,
-            title = "Thêm nguyên liệu sắp hết hạn",
-            description = "Tạo dữ liệu test để kiểm tra notification.",
-            buttonText = "Thêm test",
+            icon = Icons.Default.Kitchen,
+            title = "Thêm test Pantry",
+            description = "Tạo dữ liệu nguyên liệu test.",
+            buttonText = "Thêm",
             buttonColor = Amber400,
             enabled = true,
             onClick = onAddTestIngredient
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        NotificationTestButton(
+            icon = Icons.Default.Restaurant,
+            title = "Thêm test Meal Plan",
+            description = "Tạo meal plan test cho hôm nay.",
+            buttonText = "Thêm",
+            buttonColor = Teal400,
+            enabled = true,
+            onClick = onAddTestMealPlan
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        NotificationTestButton(
+            icon = Icons.Default.Sync,
+            title = "Reset seed data",
+            description = "Khôi phục trạng thái chưa seed dữ liệu.",
+            buttonText = "Reset",
+            buttonColor = Coral400,
+            enabled = true,
+            onClick = onResetSeed
         )
 
         Spacer(Modifier.height(Spacing.sm))
@@ -418,6 +495,61 @@ private fun DeveloperToolsCard(
                     status.contains("FAILED") -> Coral400
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AiSettingsCard(
+    preferences: UserPreference,
+    onApiKeyChange: (String) -> Unit,
+    onModelChange: (String) -> Unit
+) {
+    SettingsCard(
+        title = "Cài đặt AI",
+        subtitle = "Cấu hình mô hình AI và API Key cho SmartSous."
+    ) {
+        AppTextField(
+            value = preferences.aiApiKey,
+            onValueChange = onApiKeyChange,
+            label = "Groq API Key",
+            placeholder = "Nhập Groq API Key của bạn (tuỳ chọn)",
+            singleLine = true
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        
+        SectionLabel("Mô hình AI")
+        val aiModels = listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it")
+        SingleChoiceChipRow(
+            options = aiModels,
+            selectedOption = preferences.aiModel,
+            onSelect = onModelChange
+        )
+    }
+}
+
+@Composable
+private fun SingleChoiceChipRow(
+    options: List<String>,
+    selectedOption: String,
+    onSelect: (String) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        items(options) { option ->
+            val selected = option == selectedOption
+            FilterChip(
+                selected = selected,
+                onClick = { onSelect(option) },
+                label = { Text(option) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Purple400.copy(alpha = 0.15f),
+                    selectedLabelColor = Purple400
+                )
             )
         }
     }

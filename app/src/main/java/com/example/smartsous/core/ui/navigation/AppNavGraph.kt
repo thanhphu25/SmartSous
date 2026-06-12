@@ -18,7 +18,6 @@ import com.example.smartsous.feature.planner.PlannerScreen
 import com.example.smartsous.feature.recipedetail.RecipeDetailScreen
 import com.example.smartsous.feature.search.SearchScreen
 import com.example.smartsous.feature.favorites.FavoritesScreen
-import com.example.smartsous.feature.pantry.PantryScreen
 import com.example.smartsous.feature.pantry.BarcodeScanScreen
 import com.example.smartsous.feature.pantry.PantryViewModel
 import com.example.smartsous.feature.settings.SettingsScreen

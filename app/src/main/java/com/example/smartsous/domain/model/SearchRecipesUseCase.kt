@@ -37,16 +37,10 @@ class SearchRecipesUseCase @Inject constructor() {
         val queryTokens = query.normalizeForSearch(stripDiacritics).toSearchTokens()
         if (queryTokens.isEmpty()) return true
 
-        val searchableTokenGroups = buildList {
-            add(recipe.name.normalizeForSearch(stripDiacritics).toSearchTokens())
-            recipe.ingredients.forEach { ingredient ->
-                add(ingredient.name.normalizeForSearch(stripDiacritics).toSearchTokens())
-            }
-        }
-
-        return searchableTokenGroups.any { tokens ->
-            tokens.matchesQueryTokens(queryTokens)
-        }
+        return recipe.name
+            .normalizeForSearch(stripDiacritics)
+            .toSearchTokens()
+            .matchesQueryTokens(queryTokens)
     }
 
     private fun List<String>.matchesQueryTokens(queryTokens: List<String>): Boolean {

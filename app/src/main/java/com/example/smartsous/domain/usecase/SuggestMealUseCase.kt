@@ -1,6 +1,7 @@
 package com.example.smartsous.domain.usecase
 
 import com.example.smartsous.domain.model.Ingredient
+import com.example.smartsous.domain.model.MealType
 import com.example.smartsous.domain.model.Recipe
 import com.example.smartsous.domain.model.RecipeIngredient
 import com.example.smartsous.domain.model.SuggestedRecipe
@@ -31,7 +32,9 @@ class SuggestMealsUseCase @Inject constructor() {
         recentlyCookedIds: List<String> = emptyList(),
         userPreference: UserPreference = UserPreference(),
         topN: Int = 10,
-        currentDate: LocalDate = LocalDate.now()
+        currentDate: LocalDate = LocalDate.now(),
+        mealType: MealType? = null,
+        userDesiredServings: Int = 2
     ): List<SuggestedRecipe> {
         if (allRecipes.isEmpty()) return emptyList()
 
@@ -47,7 +50,9 @@ class SuggestMealsUseCase @Inject constructor() {
                     pantryItems = pantryItems,
                     recentlyCookedIds = recentlyCookedIds,
                     userPreference = userPreference,
-                    currentDate = currentDate
+                    currentDate = currentDate,
+                    mealType = mealType,
+                    userDesiredServings = userDesiredServings
                 )
             }
             .filter { it.score > 10f }
@@ -64,10 +69,12 @@ class SuggestMealsUseCase @Inject constructor() {
         pantryItems: List<PantryItem>,
         recentlyCookedIds: List<String>,
         userPreference: UserPreference,
-        currentDate: LocalDate
+        currentDate: LocalDate,
+        mealType: MealType?,
+        userDesiredServings: Int
     ): SuggestedRecipe {
         val ingredientMatches = recipe.ingredients.map { recipeIngredient ->
-            matchIngredient(recipeIngredient, pantryItems, currentDate)
+            matchIngredient(recipeIngredient, pantryItems, currentDate, userDesiredServings, recipe.servings.coerceAtLeast(1))
         }
 
         val matched = ingredientMatches
@@ -85,7 +92,7 @@ class SuggestMealsUseCase @Inject constructor() {
         }
 
         val matchPercent = ingredientScore.roundToInt().coerceIn(0, 100)
-        val nutritionScore = nutritionScore(recipe, userPreference)
+        val nutritionScore = nutritionScore(recipe, userPreference, mealType)
         val expiryScore = expiryScore(ingredientMatches)
         val varietyScore = if (recipe.id in recentlyCookedIds) 0f else 100f
 
@@ -119,20 +126,37 @@ class SuggestMealsUseCase @Inject constructor() {
             else -> SuggestionReason.NOT_COOKED_RECENTLY
         }
 
+        val context = when (reason) {
+            SuggestionReason.PERFECT_MATCH -> "Tủ lạnh có đủ nguyên liệu để nấu món này cho $userDesiredServings người."
+            SuggestionReason.HIGH_MATCH -> "Gần đủ nguyên liệu để nấu món này."
+            SuggestionReason.USE_EXPIRING_SOON -> {
+                val expiring = ingredientMatches.filter { it.expiryUrgency >= 40f }.maxByOrNull { it.expiryUrgency }
+                val name = expiring?.pantryItem?.name ?: "nguyên liệu"
+                "Giải cứu $name sắp hết hạn!"
+            }
+            SuggestionReason.FAVORITE_PICK -> "Món yêu thích của bạn."
+            SuggestionReason.QUICK_COOK -> "Nấu siêu tốc trong ${recipe.cookingTimeMinutes} phút."
+            SuggestionReason.HEALTHY_CHOICE -> "Cân bằng dinh dưỡng và phù hợp mức Kcal."
+            SuggestionReason.NOT_COOKED_RECENTLY -> "Đổi vị vì món này bạn chưa nấu gần đây."
+        }
+
         return SuggestedRecipe(
             recipe = recipe,
             score = totalScore.coerceIn(0f, 130f),
             matchedIngredients = matched,
             missingIngredients = missing,
             matchPercent = matchPercent,
-            reason = reason
+            reason = reason,
+            context = context
         )
     }
 
     private fun matchIngredient(
         recipeIngredient: RecipeIngredient,
         pantryItems: List<PantryItem>,
-        currentDate: LocalDate
+        currentDate: LocalDate,
+        userDesiredServings: Int,
+        recipeServings: Int
     ): IngredientMatch {
         val recipeName = normalizeIngredientName(recipeIngredient.name)
         val recipeAliases = ingredientAliases(recipeName)
@@ -145,24 +169,28 @@ class SuggestMealsUseCase @Inject constructor() {
         }
 
         val best = candidates.maxBy { pantry ->
-            val quantityScore = quantityScore(recipeIngredient, pantry)
+            val quantityScore = quantityScore(recipeIngredient, pantry, userDesiredServings, recipeServings)
             val expiry = pantry.expiryDate?.let { expiryUrgency(it, currentDate) } ?: 0f
             quantityScore + expiry * 0.15f
         }
 
-        val availability = quantityScore(recipeIngredient, best)
+        val availability = quantityScore(recipeIngredient, best, userDesiredServings, recipeServings)
         val expiryUrgency = best.expiryDate?.let { expiryUrgency(it, currentDate) } ?: 0f
         return IngredientMatch(recipeIngredient, best, availability, expiryUrgency)
     }
 
     private fun quantityScore(
         recipeIngredient: RecipeIngredient,
-        pantry: PantryItem
+        pantry: PantryItem,
+        userDesiredServings: Int,
+        recipeServings: Int
     ): Float {
         val recipeUnit = normalizeUnit(recipeIngredient.unit)
         val pantryUnit = normalizeUnit(pantry.unit)
+        
+        val requiredAmount = (recipeIngredient.amount / recipeServings) * userDesiredServings
 
-        if (recipeIngredient.amount <= 0.0 || recipeUnit.isBlank() || pantryUnit.isBlank()) {
+        if (requiredAmount <= 0.0 || recipeUnit.isBlank() || pantryUnit.isBlank()) {
             return 85f
         }
 
@@ -171,8 +199,8 @@ class SuggestMealsUseCase @Inject constructor() {
         }
 
         return when {
-            pantry.quantity >= recipeIngredient.amount -> 100f
-            pantry.quantity >= recipeIngredient.amount * 0.5 -> 65f
+            pantry.quantity >= requiredAmount -> 100f
+            pantry.quantity >= requiredAmount * 0.5 -> 65f
             else -> 40f
         }
     }
@@ -203,17 +231,30 @@ class SuggestMealsUseCase @Inject constructor() {
 
     private fun nutritionScore(
         recipe: Recipe,
-        userPreference: UserPreference
+        userPreference: UserPreference,
+        mealType: MealType?
     ): Float {
         val calories = recipe.nutrition.calories
         val targetCalories = userPreference.targetCaloriesPerMeal.coerceAtLeast(1)
         val calorieDiff = abs(calories - targetCalories)
 
+        if (calorieDiff <= 75) return 100f
+        if (calorieDiff <= 150) return 75f
+
+        val idealMin = when(mealType) {
+            MealType.BREAKFAST, MealType.SNACK -> 250
+            MealType.LUNCH, MealType.DINNER -> 500
+            else -> IDEAL_CALORIES_MIN
+        }
+        val idealMax = when(mealType) {
+            MealType.BREAKFAST, MealType.SNACK -> 450
+            MealType.LUNCH, MealType.DINNER -> 800
+            else -> IDEAL_CALORIES_MAX
+        }
+
         return when {
-            calorieDiff <= 75 -> 100f
-            calorieDiff <= 150 -> 75f
-            calories in IDEAL_CALORIES_MIN..IDEAL_CALORIES_MAX -> 65f
-            calories <= targetCalories + 300 -> 45f
+            calories in idealMin..idealMax -> 65f
+            calories <= idealMax + 300 -> 45f
             else -> 20f
         }
     }

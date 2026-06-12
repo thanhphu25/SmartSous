@@ -6,7 +6,8 @@ data class SuggestedRecipe(
     val matchedIngredients: List<String>,
     val missingIngredients: List<String>,
     val matchPercent: Int,
-    val reason: SuggestionReason
+    val reason: SuggestionReason,
+    val context: String? = null
 )
 
 enum class SuggestionReason {

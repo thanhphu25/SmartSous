@@ -17,6 +17,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.onEach
+import com.example.smartsous.domain.model.Ingredient
+import com.example.smartsous.domain.model.UserPreference
+import com.example.smartsous.domain.model.MealPlan
+import com.example.smartsous.domain.repository.IMealPlanRepository
 import javax.inject.Inject
 
 data class HomeUiState(
@@ -33,8 +40,17 @@ class HomeViewModel @Inject constructor(
     private val pantryRepository: IPantryRepository,
     private val suggestMealsUseCase: SuggestMealsUseCase,
     private val recipeRepositoryImpl: RecipeRepositoryImpl,
-    private val dataStoreManager: DataStoreManager
+    private val dataStoreManager: DataStoreManager,
+    private val mealPlanRepository: IMealPlanRepository
 ) : BaseViewModel() {
+
+    private data class HomeData(
+        val recipes: List<Recipe>,
+        val pantryItems: List<Ingredient>,
+        val preferences: UserPreference,
+        val favoriteOverrides: Map<String, Boolean>,
+        val mealPlans: List<MealPlan>
+    )
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
@@ -46,37 +62,54 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun observeSuggestions() {
-        // Combine 2 Flow: recipes + pantry
-        // Mỗi khi 1 trong 2 thay đổi → tính lại gợi ý
-        combine(
-            recipeRepository.getAllRecipes(),
-            pantryRepository.getAllIngredients(),
-            dataStoreManager.userPreferencesFlow,
-            pendingFavoriteOverrides
-        ) { recipes, pantryItems, preferences, favoriteOverrides ->
-            val recipesWithFavorites = recipes.applyFavoriteOverrides(favoriteOverrides)
-            _uiState.update { state ->
-                state.copy(
-                    allRecipes = recipesWithFavorites,
-                    isLoading = false,
-                    isRecommending = true
-                )
-            }
-            val suggested = suggestMealsUseCase(
-                allRecipes = recipesWithFavorites,
-                pantryIngredients = pantryItems,
-                userPreference = preferences,
-                topN = 10
-            )
-            _uiState.update { state ->
-                state.copy(
-                    suggestedRecipes = suggested,
-                    allRecipes = recipesWithFavorites,
-                    isLoading = false,
-                    isRecommending = false
-                )
-            }
+        val currentHour = java.time.LocalTime.now().hour
+        val mealType = when (currentHour) {
+            in 5..10 -> com.example.smartsous.domain.model.MealType.BREAKFAST
+            in 11..15 -> com.example.smartsous.domain.model.MealType.LUNCH
+            in 16..22 -> com.example.smartsous.domain.model.MealType.DINNER
+            else -> com.example.smartsous.domain.model.MealType.SNACK
         }
+        val pastWeekStart = java.time.LocalDate.now().minusDays(7)
+
+        combine(
+            recipeRepository.getAllRecipes().distinctUntilChanged(),
+            pantryRepository.getAllIngredients().distinctUntilChanged(),
+            dataStoreManager.userPreferencesFlow.distinctUntilChanged(),
+            pendingFavoriteOverrides,
+            mealPlanRepository.getMealPlanForWeek(pastWeekStart).distinctUntilChanged()
+        ) { recipes, pantryItems, preferences, favoriteOverrides, mealPlans ->
+            HomeData(recipes, pantryItems, preferences, favoriteOverrides, mealPlans)
+        }
+            .debounce(500)
+            .onEach { data ->
+                val recentlyCookedIds = data.mealPlans.flatMap { it.meals.values.flatten() }.distinct()
+                val recipesWithFavorites = data.recipes.applyFavoriteOverrides(data.favoriteOverrides)
+                _uiState.update { state ->
+                    state.copy(
+                        allRecipes = recipesWithFavorites,
+                        isLoading = false,
+                        isRecommending = true
+                    )
+                }
+                val suggested = suggestMealsUseCase(
+                    allRecipes = recipesWithFavorites,
+                    pantryIngredients = data.pantryItems,
+                    recentlyCookedIds = recentlyCookedIds,
+                    userPreference = data.preferences,
+                    topN = 10,
+                    currentDate = java.time.LocalDate.now(),
+                    mealType = mealType,
+                    userDesiredServings = 2
+                )
+                _uiState.update { state ->
+                    state.copy(
+                        suggestedRecipes = suggested,
+                        allRecipes = recipesWithFavorites,
+                        isLoading = false,
+                        isRecommending = false
+                    )
+                }
+            }
             .flowOn(Dispatchers.Default)
             .launchIn(viewModelScope)
     }

@@ -153,6 +153,26 @@ class SuggestMealsUseCaseTest {
         assertEquals("tomato-soup", result.first().recipe.id)
     }
 
+    @Test
+    fun invoke_returnsCorrectContextBasedOnServings() {
+        val perfectMatch = recipe(
+            id = "perfect",
+            ingredients = listOf(RecipeIngredient("tomato", 2.0, "item")),
+            servings = 4
+        )
+
+        // userDesiredServings = 2 -> requires 1 tomato. We have 1 tomato -> PERFECT_MATCH.
+        val result = useCase(
+            allRecipes = listOf(perfectMatch),
+            pantryIngredients = listOf(ingredient("tomato", quantity = 1.0, unit = "item")),
+            userDesiredServings = 2
+        )
+
+        assertEquals("perfect", result.first().recipe.id)
+        assertEquals(SuggestionReason.PERFECT_MATCH, result.first().reason)
+        assertEquals("Tủ lạnh có đủ nguyên liệu để nấu món này cho 2 người.", result.first().context)
+    }
+
     private fun ingredient(
         name: String,
         quantity: Double = 1.0,
@@ -170,14 +190,15 @@ class SuggestMealsUseCaseTest {
     private fun recipe(
         id: String,
         ingredients: List<RecipeIngredient>,
-        isFavorite: Boolean = false
+        isFavorite: Boolean = false,
+        servings: Int = 2
     ) = Recipe(
         id = id,
         name = id,
         description = "A test recipe",
         imageUrl = "",
         cookingTimeMinutes = 20,
-        servings = 2,
+        servings = servings,
         difficulty = Difficulty.EASY,
         ingredients = ingredients,
         steps = listOf("Cook"),

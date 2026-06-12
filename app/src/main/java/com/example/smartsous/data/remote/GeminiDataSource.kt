@@ -37,6 +37,7 @@ class GeminiDataSource @Inject constructor() {
 
     fun streamChat(
         userMessage: String,
+        systemContext: String = "",
         pantryIngredients: List<Ingredient> = emptyList(),
         chatHistory: List<ChatMessage> = emptyList()
     ): Flow<String> = flow {
@@ -45,6 +46,7 @@ class GeminiDataSource @Inject constructor() {
 
         val body = buildGroqRequestBody(
             userMessage       = userMessage,
+            systemContext     = systemContext,
             pantryIngredients = pantryIngredients,
             chatHistory       = chatHistory
         )
@@ -90,6 +92,7 @@ class GeminiDataSource @Inject constructor() {
     // ── Build request body theo format OpenAI ────────────────
     private fun buildGroqRequestBody(
         userMessage: String,
+        systemContext: String,
         pantryIngredients: List<Ingredient>,
         chatHistory: List<ChatMessage>
     ): String {
@@ -102,7 +105,10 @@ class GeminiDataSource @Inject constructor() {
         val messages = JSONArray()
 
         // System message — đầu tiên trong array
-        val systemContent = PromptBuilder.buildSystemPrompt(pantryIngredients)
+        val systemContent = PromptBuilder.buildSystemPrompt(
+            pantryIngredients = pantryIngredients,
+            ragContext = systemContext
+        )
         messages.put(JSONObject().apply {
             put("role", "system")
             put("content", systemContent)

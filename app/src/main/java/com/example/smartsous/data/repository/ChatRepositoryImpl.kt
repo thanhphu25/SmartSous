@@ -37,6 +37,7 @@ class ChatRepositoryImpl @Inject constructor(
         chatHistory: List<ChatMessage>
     ): Flow<String> = geminiDataSource.streamChat(
         userMessage = userMessage,
+        systemContext = systemContext,
         pantryIngredients = pantryIngredients,
         chatHistory = chatHistory
     )

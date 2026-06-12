@@ -10,11 +10,12 @@ import com.example.smartsous.domain.repository.IPantryRepository
 import com.example.smartsous.domain.repository.IRecipeRepository
 import com.example.smartsous.domain.usecase.SuggestMealsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
@@ -22,6 +23,7 @@ data class HomeUiState(
     val suggestedRecipes: List<SuggestedRecipe> = emptyList(),
     val allRecipes: List<Recipe> = emptyList(),
     val isLoading: Boolean = true,
+    val isRecommending: Boolean = false,
     val error: String? = null
 )
 
@@ -53,6 +55,13 @@ class HomeViewModel @Inject constructor(
             pendingFavoriteOverrides
         ) { recipes, pantryItems, preferences, favoriteOverrides ->
             val recipesWithFavorites = recipes.applyFavoriteOverrides(favoriteOverrides)
+            _uiState.update { state ->
+                state.copy(
+                    allRecipes = recipesWithFavorites,
+                    isLoading = false,
+                    isRecommending = true
+                )
+            }
             val suggested = suggestMealsUseCase(
                 allRecipes = recipesWithFavorites,
                 pantryIngredients = pantryItems,
@@ -63,10 +72,13 @@ class HomeViewModel @Inject constructor(
                 state.copy(
                     suggestedRecipes = suggested,
                     allRecipes = recipesWithFavorites,
-                    isLoading = false
+                    isLoading = false,
+                    isRecommending = false
                 )
             }
-        }.launchIn(viewModelScope)
+        }
+            .flowOn(Dispatchers.Default)
+            .launchIn(viewModelScope)
     }
 
     private fun refreshIfNeeded() {

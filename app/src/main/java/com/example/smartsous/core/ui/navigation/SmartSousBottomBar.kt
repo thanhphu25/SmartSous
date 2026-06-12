@@ -53,8 +53,10 @@ fun SmartSousBottomBar(navController: NavController) {
                 label = { Text(screen.label) },
                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                 onClick = {
+                    if (currentDestination?.route == screen.route) return@NavigationBarItem
+
                     navController.navigate(screen.route) {
-                        popUpTo(navController.graph.startDestinationId) {
+                        popUpTo(Screen.Home.route) {
                             saveState = true
                         }
                         launchSingleTop = true

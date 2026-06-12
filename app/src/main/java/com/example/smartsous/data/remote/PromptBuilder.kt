@@ -1,125 +1,93 @@
 package com.example.smartsous.data.remote
 
+import com.example.smartsous.domain.model.ChatMessage
 import com.example.smartsous.domain.model.Ingredient
 import com.example.smartsous.domain.model.IngredientCategory
+import com.example.smartsous.domain.model.MessageRole
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 
 object PromptBuilder {
 
-    // System prompt chính — nói với Gemini về vai trò và cách hành xử
-    fun buildSystemPrompt(pantryIngredients: List<Ingredient>): String = buildString {
+    fun buildSystemPrompt(
+        pantryIngredients: List<Ingredient>,
+        ragContext: String = ""
+    ): String = buildString {
+        append(
+            """
+            Ban la SmartSous, tro ly nau an thong minh cho gia dinh Viet Nam.
 
-        // ── Vai trò ───────────────────────────────────────────
-        append("""
-            Bạn là SmartSous — trợ lý nấu ăn thông minh cho gia đình Việt Nam.
-            
-            VAI TRÒ CỦA BẠN:
-            - Gợi ý món ăn phù hợp với nguyên liệu người dùng đang có
-            - Hướng dẫn cách nấu chi tiết, dễ hiểu
-            - Tư vấn về dinh dưỡng và cách bảo quản thực phẩm
-            - Trả lời mọi câu hỏi liên quan đến ẩm thực
-            
-            CÁCH TRẢ LỜI:
-            - Luôn dùng tiếng Việt, thân thiện như người bạn đang trò chuyện
-            - Ngắn gọn, súc tích — không lan man
-            - Khi gợi ý món: nêu tên món + thời gian nấu + độ khó + 1-2 câu mô tả
-            - Khi hướng dẫn nấu: đánh số từng bước rõ ràng
-            - Nếu không biết → nói thẳng, đừng bịa
-            - Chỉ tư vấn về ẩm thực — không trả lời câu hỏi ngoài chủ đề
-            
-        """.trimIndent())
+            VAI TRO:
+            - Goi y mon an dua tren du lieu that cua ung dung: recipe, pantry, so luong, han su dung.
+            - Huong dan nau an, dinh duong, bao quan thuc pham va di cho.
+            - Chi tra loi trong pham vi nau an/thuc pham/thuc don/dinh duong.
 
-        // ── Context nguyên liệu ───────────────────────────────
+            CACH TRA LOI:
+            - Luon tra loi bang tieng Viet, than thien, ngan gon.
+            - Neu goi y mon: neu ten mon, ly do phu hop, thoi gian, nguyen lieu thieu neu co.
+            - Neu huong dan nau: danh so cac buoc ro rang.
+            - Neu khong co du lieu trong SmartSous, noi ro va hoi them 1 cau ngan.
+            - Khong bia cong thuc, khong bia mon ngoai context khi nguoi dung hoi goi y tu du lieu app.
+            """.trimIndent()
+        )
+
+        append("\n\nPANTRY HIEN TAI:\n")
         if (pantryIngredients.isEmpty()) {
-            append("\nNGUYÊN LIỆU: Người dùng chưa khai báo nguyên liệu trong tủ lạnh.")
-            append("\nGợi ý: Hỏi người dùng họ đang có gì để gợi ý món phù hợp hơn.\n")
+            append("- Chua co nguyen lieu nao trong tu lanh.\n")
         } else {
-            append("\nNGUYÊN LIỆU HIỆN CÓ TRONG TỦ LẠNH:\n")
-
-            // Nhóm theo category cho dễ đọc
-            val grouped = pantryIngredients.groupBy { it.category }
-
-            grouped.forEach { (category, items) ->
-                val categoryName = when (category) {
-                    IngredientCategory.MEAT     -> "🥩 Thịt"
-                    IngredientCategory.SEAFOOD  -> "🦐 Hải sản"
-                    IngredientCategory.VEGETABLE -> "🥦 Rau củ"
-                    IngredientCategory.DAIRY    -> "🥛 Sữa & trứng"
-                    IngredientCategory.GRAIN    -> "🌾 Ngũ cốc"
-                    IngredientCategory.SPICE    -> "🧄 Gia vị"
-                    IngredientCategory.FRUIT    -> "🍎 Trái cây"
-                    IngredientCategory.BEVERAGE -> "🧃 Đồ uống"
-                    IngredientCategory.OTHER    -> "📦 Khác"
+            pantryIngredients
+                .groupBy { it.category }
+                .forEach { (category, items) ->
+                    append("${category.displayName()}:\n")
+                    items.take(30).forEach { ingredient ->
+                        append(
+                            "- ${ingredient.name}: ${formatQuantity(ingredient.quantity)} ${ingredient.unit}" +
+                                ingredient.expiryText() + "\n"
+                        )
+                    }
                 }
-                append("$categoryName:\n")
-                items.forEach { ing ->
-                    val expiryInfo = ing.expiryDate?.let { date ->
-                        val daysLeft = java.time.temporal.ChronoUnit.DAYS
-                            .between(LocalDate.now(), date).toInt()
-                        when {
-                            daysLeft <= 0 -> " ⚠️ ĐÃ HẾT HẠN"
-                            daysLeft <= 2 -> " ⚠️ hết hạn trong $daysLeft ngày"
-                            daysLeft <= 5 -> " (còn $daysLeft ngày)"
-                            else -> ""
-                        }
-                    } ?: ""
-                    append("  - ${ing.name}: ${formatQuantity(ing.quantity)} ${ing.unit}$expiryInfo\n")
-                }
-            }
-
-            // Nhắc về nguyên liệu sắp hết hạn
-            val expiringSoon = pantryIngredients.filter { ing ->
-                ing.expiryDate?.let { date ->
-                    val daysLeft = java.time.temporal.ChronoUnit.DAYS
-                        .between(LocalDate.now(), date).toInt()
-                    daysLeft in 0..3
-                } ?: false
-            }
-
-            if (expiringSoon.isNotEmpty()) {
-                append("\n⚠️ ƯU TIÊN GỢI Ý: ${expiringSoon.joinToString(", ") { it.name }}")
-                append(" — những nguyên liệu này sắp hết hạn, hãy ưu tiên gợi ý dùng chúng trước!\n")
-            }
         }
 
-        // ── Hướng dẫn format output ───────────────────────────
-        append("""
-            
-            FORMAT KHI GỢI Ý MÓN ĂN:
-            **[Tên món]** (⏱ X phút | 🌟 Độ khó)
-            [1-2 câu mô tả ngắn]
-            Nguyên liệu cần thêm: [nếu thiếu gì]
-            
-            Hãy gợi ý 2-3 món khi được hỏi, không liệt kê quá nhiều.
-        """.trimIndent())
+        if (ragContext.isNotBlank()) {
+            append("\n\nNGU CANH RAG TU SMARTSOUS:\n")
+            append(ragContext)
+            append(
+                """
+
+                QUY TAC RAG BAT BUOC:
+                - Uu tien RECOMMENDED_RECIPES theo thu tu da cho.
+                - Chi goi y mon co trong RECOMMENDED_RECIPES hoac RELEVANT_RECIPES.
+                - Neu can mua them, chi dua vao missingIngredients cua recipe.
+                - Neu user hoi mon sap het han, uu tien EXPIRING_SOON.
+                - Neu user hoi ngoai nau an/thuc pham, tu choi ngan gon va keo ve chu de nau an.
+                """.trimIndent()
+            )
+        }
     }
 
-    // Build conversation history để gửi lên Gemini
-    // Gemini cần biết context hội thoại trước để trả lời đúng
     fun buildConversationMessages(
-        history: List<com.example.smartsous.domain.model.ChatMessage>,
+        history: List<ChatMessage>,
         newUserMessage: String
     ): List<Map<String, Any>> {
         val messages = mutableListOf<Map<String, Any>>()
 
-        // Lịch sử (tối đa 10 tin nhắn gần nhất để tránh token quá lớn)
         history.takeLast(10).forEach { msg ->
             val role = when (msg.role) {
-                com.example.smartsous.domain.model.MessageRole.USER      -> "user"
-                com.example.smartsous.domain.model.MessageRole.ASSISTANT -> "model"
+                MessageRole.USER -> "user"
+                MessageRole.ASSISTANT -> "model"
             }
             messages.add(
                 mapOf(
-                    "role"  to role,
+                    "role" to role,
                     "parts" to listOf(mapOf("text" to msg.content))
                 )
             )
         }
 
-        // Tin nhắn mới của user
         messages.add(
             mapOf(
-                "role"  to "user",
+                "role" to "user",
                 "parts" to listOf(mapOf("text" to newUserMessage))
             )
         )
@@ -127,35 +95,61 @@ object PromptBuilder {
         return messages
     }
 
-    // Quick-reply suggestions dựa theo ngữ cảnh
     fun buildQuickReplies(
         pantryIngredients: List<Ingredient>,
         lastAssistantMessage: String
     ): List<String> {
         val suggestions = mutableListOf<String>()
 
-        // Nếu pantry có nguyên liệu → gợi ý câu hỏi về nguyên liệu đó
         if (pantryIngredients.isNotEmpty()) {
-            val randomIngredient = pantryIngredients.random()
-            suggestions.add("Nấu gì với ${randomIngredient.name}?")
+            suggestions.add("Nấu gì với ${pantryIngredients.first().name}?")
         }
 
-        // Gợi ý chung theo thời gian
-        val hour = java.time.LocalTime.now().hour
-        when (hour) {
-            in 6..9   -> suggestions.add("Gợi ý bữa sáng nhanh?")
+        val lower = lastAssistantMessage.lowercase()
+        if (lower.contains("mua") || lower.contains("thiếu")) {
+            suggestions.add("Gợi ý món khác ít thiếu hơn?")
+        }
+
+        when (LocalTime.now().hour) {
+            in 6..9 -> suggestions.add("Gợi ý bữa sáng nhanh?")
             in 10..13 -> suggestions.add("Gợi ý bữa trưa hôm nay?")
             in 17..20 -> suggestions.add("Gợi ý bữa tối cho gia đình?")
         }
 
-        // Gợi ý cố định
-        suggestions.addAll(listOf(
-            "Món gì nấu dưới 20 phút?",
-            "Cách bảo quản thực phẩm?",
-            "Món chay đơn giản?"
-        ))
+        suggestions.addAll(
+            listOf(
+                "Món gì nấu dưới 20 phút?",
+                "Cần mua thêm gì?",
+                "Món nào dùng đồ sắp hết hạn?"
+            )
+        )
 
-        return suggestions.take(3) // Chỉ hiện 3 gợi ý
+        return suggestions.distinct().take(3)
+    }
+
+    private fun IngredientCategory.displayName(): String =
+        when (this) {
+            IngredientCategory.MEAT -> "Thit"
+            IngredientCategory.SEAFOOD -> "Hai san"
+            IngredientCategory.VEGETABLE -> "Rau cu"
+            IngredientCategory.DAIRY -> "Sua & trung"
+            IngredientCategory.GRAIN -> "Ngu coc"
+            IngredientCategory.SPICE -> "Gia vi"
+            IngredientCategory.FRUIT -> "Trai cay"
+            IngredientCategory.BEVERAGE -> "Do uong"
+            IngredientCategory.OTHER -> "Khac"
+        }
+
+    private fun Ingredient.expiryText(): String {
+        val date = expiryDate ?: return ""
+        val daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), date)
+        return when {
+            daysLeft < 0 -> " - DA HET HAN"
+            daysLeft == 0L -> " - HET HAN HOM NAY"
+            daysLeft <= 3 -> " - sap het han trong $daysLeft ngay"
+            daysLeft <= 7 -> " - con $daysLeft ngay"
+            else -> ""
+        }
     }
 
     private fun formatQuantity(quantity: Double): String =

@@ -1,81 +1,51 @@
 package com.example.smartsous.domain.usecase
 
+import java.text.Normalizer
 import javax.inject.Inject
 
-// Kết quả sau khi phân tích intent
 sealed class ChatIntent {
-
-    // User hỏi nấu gì từ một số nguyên liệu cụ thể
-    // VD: "nấu gì từ cà chua + thịt bò" → ingredients = ["cà chua", "thịt bò"]
-    data class SuggestFromIngredients(
-        val ingredients: List<String>
-    ) : ChatIntent()
-
-    // User hỏi tìm món theo tên/loại
-    // VD: "có món gì từ thịt heo không"
-    data class SearchRecipe(
-        val query: String
-    ) : ChatIntent()
-
-    // User hỏi về dinh dưỡng
-    // VD: "món ít calo nhất", "ăn gì để giảm cân"
-    object NutritionAdvice : ChatIntent()
-
-    // User hỏi về pantry của mình
-    // VD: "tôi còn gì trong tủ lạnh", "nấu gì với đồ tôi đang có"
+    data class SuggestFromIngredients(val ingredients: List<String>) : ChatIntent()
+    data class SearchRecipe(val query: String) : ChatIntent()
+    data class AskRecipeDetail(val query: String) : ChatIntent()
     object UseMyPantry : ChatIntent()
-
-    // Câu hỏi thông thường → để Gemini xử lý
-    object GeneralQuestion : ChatIntent()
+    object ExpiringFood : ChatIntent()
+    object ShoppingAdvice : ChatIntent()
+    object NutritionAdvice : ChatIntent()
+    object GeneralCookingQuestion : ChatIntent()
+    object OutOfDomain : ChatIntent()
 }
 
 class IntentDetector @Inject constructor() {
 
-    // Pattern nhận dạng intent "gợi ý từ nguyên liệu cụ thể"
-    private val suggestPatterns = listOf(
-        Regex("""nấu\s*gì\s*(từ|với|bằng)\s*(.+)""", RegexOption.IGNORE_CASE),
-        Regex("""(từ|với|có)\s*(.+)\s*nấu\s*gì""", RegexOption.IGNORE_CASE),
-        Regex("""(làm|chế biến)\s*gì\s*(từ|với)\s*(.+)""", RegexOption.IGNORE_CASE),
-        Regex("""(có|dùng)\s*(.+)\s*(làm|nấu)\s*(gì|món\s*gì)""", RegexOption.IGNORE_CASE),
-        Regex("""món\s*gì\s*(từ|với)\s*(.+)""", RegexOption.IGNORE_CASE)
-    )
-
-    // Pattern nhận dạng intent "dùng pantry hiện tại"
-    private val pantryPatterns = listOf(
-        "tủ lạnh", "đang có", "hiện có", "còn lại", "nguyên liệu của tôi",
-        "nấu gì hôm nay", "ăn gì hôm nay", "gợi ý món",
-        "dùng đồ tôi có", "trong nhà có gì"
-    )
-
-    // Pattern nhận dạng intent "dinh dưỡng"
-    private val nutritionPatterns = listOf(
-        "ít calo", "giảm cân", "ít béo", "healthy", "lành mạnh",
-        "dinh dưỡng", "protein", "vitamin", "ăn kiêng", "low carb"
-    )
-
-    private val knownIngredients = listOf(
-        "cà chua", "thịt bò", "thịt heo", "thịt lợn", "thịt gà", "cá", "tôm",
-        "trứng", "đậu phụ", "rau muống", "bí đỏ", "hành tây", "tỏi", "gừng",
-        "ớt", "cà rốt", "khoai tây", "bắp cải", "giá đỗ", "nấm", "đậu hũ",
-        "mực", "ngao", "cua", "sườn", "xương", "lòng", "gan", "tim"
-    )
-
-    // Phân tích message → trả về Intent
     fun detect(message: String): ChatIntent {
-        val lower = message.lowercase().trim()
+        val normalized = message.normalizeForIntent()
 
-        // 1. Kiểm tra intent "dùng pantry"
-        if (pantryPatterns.any { lower.contains(it) } &&
-            !hasSeparator(lower)) {
+        if (normalized.isBlank()) return ChatIntent.GeneralCookingQuestion
+
+        if (isOutOfDomain(normalized)) {
+            return ChatIntent.OutOfDomain
+        }
+
+        if (expiringKeywords.any { normalized.contains(it) }) {
+            return ChatIntent.ExpiringFood
+        }
+
+        if (shoppingKeywords.any { normalized.contains(it) }) {
+            return ChatIntent.ShoppingAdvice
+        }
+
+        if (nutritionKeywords.any { normalized.contains(it) }) {
+            return ChatIntent.NutritionAdvice
+        }
+
+        if (pantryKeywords.any { normalized.contains(it) } && !hasIngredientSeparator(normalized)) {
             return ChatIntent.UseMyPantry
         }
 
-        // 2. Kiểm tra intent "gợi ý từ nguyên liệu cụ thể"
-        for (pattern in suggestPatterns) {
-            val match = pattern.find(lower)
+        suggestPatterns.forEach { pattern ->
+            val match = pattern.find(normalized)
             if (match != null) {
-                val ingredientsText = match.groupValues.lastOrNull { it.isNotBlank() }
-                    ?: continue
+                val ingredientsText = match.groupValues.lastOrNull { it.isNotBlank() }.orEmpty()
                 val ingredients = extractIngredients(ingredientsText)
                 if (ingredients.isNotEmpty()) {
                     return ChatIntent.SuggestFromIngredients(ingredients)
@@ -83,63 +53,126 @@ class IntentDetector @Inject constructor() {
             }
         }
 
-        // 3. Kiểm tra nếu message chứa dấu phân cách nguyên liệu
-        if (hasSeparator(lower) && !lower.contains("?") ||
-            lower.split(Regex("[,+&]")).size >= 2) {
-            val ingredients = extractIngredients(lower)
+        if (hasIngredientSeparator(normalized)) {
+            val ingredients = extractIngredients(normalized)
             if (ingredients.size >= 2) {
                 return ChatIntent.SuggestFromIngredients(ingredients)
             }
         }
 
-        // 4. Kiểm tra intent "dinh dưỡng"
-        if (nutritionPatterns.any { lower.contains(it) }) {
-            return ChatIntent.NutritionAdvice
+        if (recipeDetailKeywords.any { normalized.contains(it) }) {
+            return ChatIntent.AskRecipeDetail(normalized)
         }
 
-        // 5. Mặc định → câu hỏi thông thường
-        return ChatIntent.GeneralQuestion
+        if (searchKeywords.any { normalized.contains(it) }) {
+            return ChatIntent.SearchRecipe(normalized)
+        }
+
+        return if (cookingDomainKeywords.any { normalized.contains(it) }) {
+            ChatIntent.GeneralCookingQuestion
+        } else {
+            ChatIntent.OutOfDomain
+        }
     }
 
-    // Tách tên nguyên liệu từ chuỗi
-    // "cà chua, thịt bò và hành tây" → ["cà chua", "thịt bò", "hành tây"]
     fun extractIngredients(text: String): List<String> {
-        val lower = text.lowercase()
+        val normalized = text.normalizeForIntent()
+        val bySeparator = normalized
+            .split(Regex("""[,/+&]|\s+va\s+"""))
+            .map { cleanIngredientName(it) }
+            .filter { it.length >= 2 && it !in stopWords }
 
-        // Thử tách bằng separator trước
-        val bySeparator = lower
-            .split(Regex("[,+&\\n/]|\\s+và\\s+"))
-            .map { it.trim() }
-            .filter { it.isNotBlank() && it.length >= 2 && it !in stopWords }
+        if (bySeparator.size >= 2) return bySeparator
 
-        if (bySeparator.size >= 2) return bySeparator.map { cleanIngredientName(it) }
-
-        // Không có separator → dùng danh sách từ khóa
         val matched = knownIngredients.filter { keyword ->
-            lower.contains(keyword)
+            normalized.contains(keyword)
         }
         if (matched.isNotEmpty()) return matched
 
-        // Fallback: trả về token duy nhất
-        return bySeparator.map { cleanIngredientName(it) }.filter { it.isNotBlank() }
+        return bySeparator
     }
 
-    // Kiểm tra có dấu phân cách nguyên liệu không
-    private fun hasSeparator(text: String): Boolean =
-        text.contains(',') || text.contains('+') ||
-                text.contains('&') || text.contains(" và ")
+    private fun isOutOfDomain(message: String): Boolean {
+        if (cookingDomainKeywords.any { message.contains(it) }) return false
+        return outOfDomainKeywords.any { message.contains(it) }
+    }
 
-    // Làm sạch tên nguyên liệu
+    private fun hasIngredientSeparator(text: String): Boolean =
+        text.contains(',') || text.contains('+') || text.contains('/') ||
+            text.contains('&') || text.contains(" va ")
+
     private fun cleanIngredientName(name: String): String =
         name
-            .replace(Regex("""^\d+\s*"""), "") // bỏ số đầu "2 cà chua"
-            .replace(Regex("""\s*(gram|kg|ml|lít|g|kg)\s*\d*"""), "") // bỏ đơn vị
-            .replace(Regex("""[^\p{L}\p{N}\s]"""), "") // bỏ ký tự đặc biệt
+            .replace(Regex("""^\d+\s*"""), "")
+            .replace(Regex("""\b(gram|kg|ml|lit|litre|liter|g|goi|qua|cai|cu)\b"""), "")
+            .replace(Regex("""\b(nau|lam|mon|an|voi|tu|bang|co|gi|cua|toi|them)\b"""), "")
+            .replace(Regex("""\s+"""), " ")
             .trim()
 
+    private fun String.normalizeForIntent(): String =
+        Normalizer.normalize(lowercase().trim(), Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "")
+            .replace("đ", "d")
+            .replace(Regex("""[^\p{Alnum}\s,+/&]"""), " ")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+
+    private val suggestPatterns = listOf(
+        Regex("""nau\s+gi\s+(tu|voi|bang)\s+(.+)"""),
+        Regex("""(tu|voi|co)\s+(.+)\s+nau\s+gi"""),
+        Regex("""(lam|che bien)\s+gi\s+(tu|voi)\s+(.+)"""),
+        Regex("""mon\s+gi\s+(tu|voi)\s+(.+)""")
+    )
+
+    private val pantryKeywords = listOf(
+        "tu lanh", "dang co", "hien co", "con lai", "nguyen lieu cua toi",
+        "nau gi hom nay", "an gi hom nay", "goi y mon", "do toi co", "trong nha"
+    )
+
+    private val expiringKeywords = listOf(
+        "sap het han", "het han", "can dung truoc", "do nao sap hong", "do nao nen nau truoc"
+    )
+
+    private val shoppingKeywords = listOf(
+        "can mua", "mua them", "di cho", "shopping", "thieu gi", "nguyen lieu can them"
+    )
+
+    private val nutritionKeywords = listOf(
+        "it calo", "calo", "calories", "giam can", "it beo", "healthy",
+        "lanh manh", "dinh duong", "protein", "vitamin", "an kieng", "low carb"
+    )
+
+    private val recipeDetailKeywords = listOf(
+        "cach nau", "huong dan", "cong thuc", "lam mon", "nau mon", "cac buoc"
+    )
+
+    private val searchKeywords = listOf(
+        "tim mon", "co mon", "mon nao", "mon gi"
+    )
+
+    private val cookingDomainKeywords = listOf(
+        "nau", "mon", "an", "nguyen lieu", "thuc pham", "tu lanh", "bua",
+        "cong thuc", "dinh duong", "calo", "protein", "rau", "thit", "ca",
+        "tom", "trung", "gao", "bun", "pho", "salad", "soup", "sot", "chien",
+        "xao", "luoc", "hap", "nuong", "kho", "ham", "bao quan", "het han"
+    )
+
+    private val outOfDomainKeywords = listOf(
+        "viet nam co bao nhieu", "tinh giap bien", "lap trinh", "code", "toan",
+        "lich su", "dia ly", "chinh tri", "bong da", "thoi tiet", "gia vang",
+        "crypto", "bitcoin", "co phieu", "phim", "game", "du lich"
+    )
+
+    private val knownIngredients = listOf(
+        "ca chua", "beef", "thit bo", "pork", "thit heo", "thit lon", "chicken", "thit ga",
+        "fish", "ca", "shrimp", "tom", "egg", "trung", "tofu", "dau phu", "dau hu",
+        "rau muong", "bi do", "hanh tay", "toi", "gung", "ot", "ca rot",
+        "khoai tay", "bap cai", "gia do", "nam", "muc", "ngao", "cua",
+        "gao", "bun", "mi", "sua", "pho mai"
+    )
+
     private val stopWords = setOf(
-        "gì", "và", "với", "từ", "có", "của", "tôi", "nấu",
-        "làm", "chế", "biến", "món", "ăn", "thêm", "bỏ",
-        "một", "hai", "ba", "vài", "nhiều", "ít"
+        "gi", "va", "voi", "tu", "co", "cua", "toi", "nau", "lam", "che",
+        "bien", "mon", "an", "them", "bo", "mot", "hai", "ba", "vai", "nhieu", "it"
     )
 }

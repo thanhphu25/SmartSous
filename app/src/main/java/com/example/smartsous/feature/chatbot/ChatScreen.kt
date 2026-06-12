@@ -321,9 +321,11 @@ private fun ChatHistoryDialog(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(conversations, key = { it.id }) { conversation ->
-                        TextButton(
-                            onClick = { onSelect(conversation.id) },
-                            modifier = Modifier.fillMaxWidth()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = if (conversation.id == currentConversationId) {
@@ -331,28 +333,42 @@ private fun ChatHistoryDialog(
                                 } else {
                                     conversation.title
                                 },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onSelect(conversation.id) }
+                                    .padding(start = 12.dp, end = 12.dp),
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (conversation.id == currentConversationId) {
+                                    Purple400
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                                style = MaterialTheme.typography.bodyMedium
                             )
                             IconButton(
                                 onClick = {
                                     editingConversation = conversation
                                     editingTitle = conversation.title
-                                }
+                                },
+                                modifier = Modifier.size(34.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = Purple400,
                                     contentDescription = "Đổi tên chat"
                                 )
                             }
                             IconButton(
                                 onClick = {
                                     deletingConversation = conversation
-                                }
+                                },
+                                modifier = Modifier.size(34.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
+                                    modifier = Modifier.size(18.dp),
                                     contentDescription = "Xóa chat",
                                     tint = MaterialTheme.colorScheme.error
                                 )

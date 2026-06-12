@@ -3,11 +3,11 @@ package com.example.smartsous.feature.chatbot
 import androidx.lifecycle.viewModelScope
 import com.example.smartsous.core.common.BaseViewModel
 import com.example.smartsous.data.remote.PromptBuilder
+import com.example.smartsous.domain.model.ChatConversation
 import com.example.smartsous.domain.model.ChatMessage
 import com.example.smartsous.domain.model.Ingredient
 import com.example.smartsous.domain.model.MessageRole
 import com.example.smartsous.domain.model.MessageType
-import com.example.smartsous.domain.model.SuggestedRecipe
 import com.example.smartsous.domain.repository.IChatRepository
 import com.example.smartsous.domain.repository.IPantryRepository
 import com.example.smartsous.domain.repository.IRecipeRepository
@@ -16,10 +16,13 @@ import com.example.smartsous.domain.usecase.ChatWithAIUseCase
 import com.example.smartsous.domain.usecase.IntentDetector
 import com.example.smartsous.domain.usecase.SuggestMealsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -29,6 +32,8 @@ import javax.inject.Inject
 
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
+    val conversations: List<ChatConversation> = emptyList(),
+    val currentConversationId: String? = null,
     val isTyping: Boolean = false,
     val streamingText: String = "",
     val quickReplies: List<String> = emptyList(),
@@ -43,23 +48,93 @@ class ChatViewModel @Inject constructor(
     private val pantryRepository: IPantryRepository,
     private val recipeRepository: IRecipeRepository,
     private val suggestMealsUseCase: SuggestMealsUseCase,
-    private val intentDetector: IntentDetector      // ← inject
+    private val intentDetector: IntentDetector
 ) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState = _uiState.asStateFlow()
+    private val currentConversationId = MutableStateFlow<String?>(null)
 
     init {
-        observeChatHistory()
+        observeConversations()
+        observeCurrentConversation()
         observePantry()
+        viewModelScope.launch {
+            switchConversation(chatRepository.ensureConversation())
+        }
     }
 
-    private fun observeChatHistory() {
-        chatRepository.getChatHistory()
+    private fun observeConversations() {
+        chatRepository.getConversations()
+            .onEach { conversations ->
+                _uiState.update { it.copy(conversations = conversations) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeCurrentConversation() {
+        currentConversationId
+            .filterNotNull()
+            .flatMapLatest { conversationId ->
+                chatRepository.getChatHistory(conversationId)
+            }
             .onEach { history ->
                 _uiState.update { it.copy(messages = history) }
             }
             .launchIn(viewModelScope)
+    }
+
+    fun switchConversation(conversationId: String) {
+        currentConversationId.value = conversationId
+        _uiState.update {
+            it.copy(
+                currentConversationId = conversationId,
+                streamingText = "",
+                isTyping = false,
+                errorMessage = null
+            )
+        }
+    }
+
+    fun createNewChat() {
+        viewModelScope.launch {
+            val conversationId = chatRepository.createConversation()
+            switchConversation(conversationId)
+            _uiState.update { state ->
+                state.copy(
+                    messages = emptyList(),
+                    quickReplies = buildInitialQuickReplies(state.pantryIngredients)
+                )
+            }
+        }
+    }
+
+    fun renameConversation(conversationId: String, title: String) {
+        val trimmedTitle = title.trim()
+        if (trimmedTitle.isBlank()) return
+
+        viewModelScope.launch {
+            chatRepository.renameConversation(
+                conversationId = conversationId,
+                title = trimmedTitle
+            )
+        }
+    }
+
+    fun deleteConversation(conversationId: String) {
+        viewModelScope.launch {
+            val nextConversationId = chatRepository.deleteConversation(conversationId)
+            if (currentConversationId.value == conversationId) {
+                switchConversation(nextConversationId)
+                _uiState.update { state ->
+                    state.copy(
+                        messages = emptyList(),
+                        quickReplies = buildInitialQuickReplies(state.pantryIngredients)
+                    )
+                }
+            }
+        }
     }
 
     private fun observePantry() {
@@ -80,16 +155,17 @@ class ChatViewModel @Inject constructor(
     fun sendMessage(text: String) {
         if (text.isBlank() || _uiState.value.isTyping) return
 
+        val conversationId = currentConversationId.value ?: return
         val userMessage = ChatMessage(
-            id      = UUID.randomUUID().toString(),
+            id = UUID.randomUUID().toString(),
             content = text.trim(),
-            role    = MessageRole.USER
+            role = MessageRole.USER
         )
 
         _uiState.update { state ->
             state.copy(
-                messages     = state.messages + userMessage,
-                isTyping     = true,
+                messages = appendMessage(state.messages, userMessage),
+                isTyping = true,
                 streamingText = "",
                 quickReplies = emptyList(),
                 errorMessage = null
@@ -97,75 +173,74 @@ class ChatViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            chatRepository.saveMessage(userMessage)
+            if (_uiState.value.messages.size == 1) {
+                chatRepository.renameConversation(
+                    conversationId = conversationId,
+                    title = buildConversationTitle(text)
+                )
+            }
+            chatRepository.saveMessage(userMessage, conversationId)
 
-            // ── Phát hiện intent ──────────────────────────────
-            val intent = intentDetector.detect(text)
-
-            when (intent) {
-
-                // Intent: gợi ý từ nguyên liệu cụ thể
+            when (val intent = intentDetector.detect(text)) {
                 is ChatIntent.SuggestFromIngredients -> {
                     handleIngredientIntent(
                         ingredients = intent.ingredients,
-                        originalMessage = text
+                        originalMessage = text,
+                        conversationId = conversationId
                     )
                 }
 
-                // Intent: dùng pantry hiện tại
                 is ChatIntent.UseMyPantry -> {
-                    handlePantryIntent(originalMessage = text)
+                    handlePantryIntent(
+                        originalMessage = text,
+                        conversationId = conversationId
+                    )
                 }
 
-                // Intent thông thường → để Gemini xử lý
                 else -> {
-                    streamGeminiResponse(text)
+                    streamGeminiResponse(text, conversationId)
                 }
             }
         }
     }
 
-    // ── Handler: gợi ý từ nguyên liệu được nhắc tên ──────────
     private suspend fun handleIngredientIntent(
         ingredients: List<String>,
-        originalMessage: String
+        originalMessage: String,
+        conversationId: String
     ) {
         val allRecipes = recipeRepository.getAllRecipes().first()
-
-        // Tạo fake pantry từ nguyên liệu user đề cập
         val fakeIngredients = ingredients.map { name ->
             com.example.smartsous.domain.model.Ingredient(
-                id       = UUID.randomUUID().toString(),
-                name     = name,
+                id = UUID.randomUUID().toString(),
+                name = name,
                 quantity = 1.0,
-                unit     = "đơn vị",
+                unit = "đơn vị",
                 category = com.example.smartsous.domain.model.IngredientCategory.OTHER
             )
         }
 
-        // Gọi SuggestMealsUseCase với nguyên liệu trích xuất
         val suggestions = suggestMealsUseCase(
-            allRecipes         = allRecipes,
-            pantryIngredients  = fakeIngredients,
-            topN               = 3
+            allRecipes = allRecipes,
+            pantryIngredients = fakeIngredients,
+            topN = 3
         )
 
         if (suggestions.isNotEmpty()) {
-            // Hiện recipe cards ngay lập tức — không cần đợi Gemini
             val recipeMessage = ChatMessage(
-                id               = UUID.randomUUID().toString(),
-                content          = "Với ${ingredients.joinToString(", ")}, tôi gợi ý ${suggestions.size} món:",
-                role             = MessageRole.ASSISTANT,
-                type             = MessageType.RECIPE_SUGGESTION,
+                id = UUID.randomUUID().toString(),
+                content = "Với ${ingredients.joinToString(", ")}, tôi gợi ý ${suggestions.size} món:",
+                role = MessageRole.ASSISTANT,
+                type = MessageType.RECIPE_SUGGESTION,
                 suggestedRecipes = suggestions
             )
-            chatRepository.saveMessage(recipeMessage)
+            chatRepository.saveMessage(recipeMessage, conversationId)
             _uiState.update { state ->
                 state.copy(
-                    messages      = state.messages + recipeMessage,
-                    isTyping      = false,
+                    messages = appendMessage(state.messages, recipeMessage),
+                    isTyping = false,
                     streamingText = "",
-                    quickReplies  = listOf(
+                    quickReplies = listOf(
                         "Hướng dẫn nấu món đầu tiên?",
                         "Gợi ý thêm món khác?",
                         "Cần mua thêm gì?"
@@ -173,28 +248,25 @@ class ChatViewModel @Inject constructor(
                 )
             }
         } else {
-            // Không có recipe phù hợp → hỏi Gemini
-            streamGeminiResponse(originalMessage)
+            streamGeminiResponse(originalMessage, conversationId)
         }
     }
 
-    // ── Handler: dùng pantry hiện tại ─────────────────────────
-    private suspend fun handlePantryIntent(originalMessage: String) {
+    private suspend fun handlePantryIntent(originalMessage: String, conversationId: String) {
         val currentPantry = _uiState.value.pantryIngredients
 
         if (currentPantry.isEmpty()) {
-            // Pantry trống → nhắc user thêm nguyên liệu
             val emptyMsg = ChatMessage(
-                id      = UUID.randomUUID().toString(),
-                content = "Tủ lạnh của bạn đang trống 🧊\nHãy vào tab Pantry để thêm nguyên liệu — tôi sẽ gợi ý món phù hợp nhất!",
-                role    = MessageRole.ASSISTANT
+                id = UUID.randomUUID().toString(),
+                content = "Tủ lạnh của bạn đang trống 🧊\nHãy vào tab Pantry để thêm nguyên liệu - tôi sẽ gợi ý món phù hợp nhất!",
+                role = MessageRole.ASSISTANT
             )
-            chatRepository.saveMessage(emptyMsg)
+            chatRepository.saveMessage(emptyMsg, conversationId)
             _uiState.update { state ->
                 state.copy(
-                    messages      = state.messages + emptyMsg,
-                    isTyping      = false,
-                    quickReplies  = listOf("Mở Pantry", "Gợi ý món phổ biến")
+                    messages = appendMessage(state.messages, emptyMsg),
+                    isTyping = false,
+                    quickReplies = listOf("Mở Pantry", "Gợi ý món phổ biến")
                 )
             }
             return
@@ -202,50 +274,49 @@ class ChatViewModel @Inject constructor(
 
         val allRecipes = recipeRepository.getAllRecipes().first()
         val suggestions = suggestMealsUseCase(
-            allRecipes        = allRecipes,
+            allRecipes = allRecipes,
             pantryIngredients = currentPantry,
-            topN              = 3
+            topN = 3
         )
 
         if (suggestions.isNotEmpty()) {
             val recipeMessage = ChatMessage(
-                id               = UUID.randomUUID().toString(),
-                content          = "Từ ${currentPantry.size} nguyên liệu trong tủ, tôi gợi ý:",
-                role             = MessageRole.ASSISTANT,
-                type             = MessageType.RECIPE_SUGGESTION,
+                id = UUID.randomUUID().toString(),
+                content = "Từ ${currentPantry.size} nguyên liệu trong tủ, tôi gợi ý:",
+                role = MessageRole.ASSISTANT,
+                type = MessageType.RECIPE_SUGGESTION,
                 suggestedRecipes = suggestions
             )
-            chatRepository.saveMessage(recipeMessage)
+            chatRepository.saveMessage(recipeMessage, conversationId)
             _uiState.update { state ->
                 state.copy(
-                    messages      = state.messages + recipeMessage,
-                    isTyping      = false,
+                    messages = appendMessage(state.messages, recipeMessage),
+                    isTyping = false,
                     streamingText = "",
-                    quickReplies  = PromptBuilder.buildQuickReplies(
+                    quickReplies = PromptBuilder.buildQuickReplies(
                         currentPantry, ""
                     )
                 )
             }
         } else {
-            streamGeminiResponse(originalMessage)
+            streamGeminiResponse(originalMessage, conversationId)
         }
     }
 
-    // ── Stream Gemini response ────────────────────────────────
-    private suspend fun streamGeminiResponse(text: String) {
+    private suspend fun streamGeminiResponse(text: String, conversationId: String) {
         val currentState = _uiState.value
 
         chatWithAIUseCase(
-            userMessage       = text,
+            userMessage = text,
             pantryIngredients = currentState.pantryIngredients,
-            chatHistory       = currentState.messages.dropLast(1)
+            chatHistory = currentState.messages.dropLast(1)
         )
-            .catch { e ->
+            .catch {
                 _uiState.update { state ->
                     state.copy(
-                        isTyping      = false,
+                        isTyping = false,
                         streamingText = "",
-                        errorMessage  = "Không thể kết nối. Kiểm tra mạng và thử lại."
+                        errorMessage = "Không thể kết nối. Kiểm tra mạng và thử lại."
                     )
                 }
             }
@@ -255,22 +326,21 @@ class ChatViewModel @Inject constructor(
                 }
             }
 
-        // Stream xong → lưu message hoàn chỉnh
         val finalText = _uiState.value.streamingText
         if (finalText.isNotBlank()) {
             val assistantMessage = ChatMessage(
-                id      = UUID.randomUUID().toString(),
+                id = UUID.randomUUID().toString(),
                 content = finalText,
-                role    = MessageRole.ASSISTANT
+                role = MessageRole.ASSISTANT
             )
-            chatRepository.saveMessage(assistantMessage)
+            chatRepository.saveMessage(assistantMessage, conversationId)
 
             _uiState.update { state ->
                 state.copy(
-                    messages      = state.messages + assistantMessage,
-                    isTyping      = false,
+                    messages = appendMessage(state.messages, assistantMessage),
+                    isTyping = false,
                     streamingText = "",
-                    quickReplies  = PromptBuilder.buildQuickReplies(
+                    quickReplies = PromptBuilder.buildQuickReplies(
                         state.pantryIngredients, finalText
                     )
                 )
@@ -287,12 +357,13 @@ class ChatViewModel @Inject constructor(
 
     fun clearHistory() {
         viewModelScope.launch {
-            chatRepository.clearHistory()
+            val conversationId = currentConversationId.value ?: return@launch
+            chatRepository.clearHistory(conversationId)
             _uiState.update { state ->
                 state.copy(
-                    messages      = emptyList(),
+                    messages = emptyList(),
                     streamingText = "",
-                    quickReplies  = buildInitialQuickReplies(state.pantryIngredients)
+                    quickReplies = buildInitialQuickReplies(state.pantryIngredients)
                 )
             }
         }
@@ -315,4 +386,18 @@ class ChatViewModel @Inject constructor(
         ))
         return replies.take(3)
     }
+
+    private fun buildConversationTitle(text: String): String =
+        text.trim()
+            .replace(Regex("\\s+"), " ")
+            .take(32)
+            .ifBlank { "Đoạn chat mới" }
+
+    private fun appendMessage(
+        messages: List<ChatMessage>,
+        message: ChatMessage
+    ): List<ChatMessage> =
+        (messages + message)
+            .distinctBy { it.id }
+            .sortedBy { it.timestamp }
 }

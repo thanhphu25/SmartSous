@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.smartsous.core.common.DataStoreManager
 import com.example.smartsous.data.local.dao.MealPlanDao
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -16,6 +17,7 @@ class MealReminderWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val mealPlanDao: MealPlanDao,
+    private val dataStoreManager: DataStoreManager,
     private val notificationHelper: NotificationHelper
 ) : CoroutineWorker(context, params) {
 
@@ -26,6 +28,12 @@ class MealReminderWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
+            val notifications = dataStoreManager.notificationPreferenceFlow.first()
+            if (!notifications.mealRemindersEnabled) {
+                Log.d(TAG, "Meal reminders disabled")
+                return Result.success()
+            }
+
             val today = LocalDate.now().toString()
             val todayPlans = mealPlanDao
                 .getForWeek(today, today)

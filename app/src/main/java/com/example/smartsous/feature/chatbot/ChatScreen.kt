@@ -32,7 +32,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -44,6 +49,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.example.smartsous.domain.model.ChatConversation
 import com.example.smartsous.domain.model.ChatMessage
 import com.example.smartsous.domain.model.MessageRole
 import com.example.smartsous.domain.model.MessageType
@@ -90,6 +97,7 @@ fun ChatScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf("") }
+    var showHistoryDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(uiState.messages.size, uiState.streamingText) {
@@ -122,6 +130,34 @@ fun ChatScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(start = 8.dp)
+            )
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { showHistoryDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Lịch sử chat",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            IconButton(onClick = { viewModel.createNewChat() }) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Tạo chat mới",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        if (showHistoryDialog) {
+            ChatHistoryDialog(
+                conversations = uiState.conversations,
+                currentConversationId = uiState.currentConversationId,
+                onRename = viewModel::renameConversation,
+                onDelete = viewModel::deleteConversation,
+                onSelect = { conversationId ->
+                    viewModel.switchConversation(conversationId)
+                    showHistoryDialog = false
+                },
+                onDismiss = { showHistoryDialog = false }
             )
         }
         // ── Message list ──────────────────────────────────────
@@ -257,6 +293,145 @@ fun ChatScreen(
 }
 
 // ── Bubble tin nhắn thường ────────────────────────────────
+@Composable
+private fun ChatHistoryDialog(
+    conversations: List<ChatConversation>,
+    currentConversationId: String?,
+    onRename: (String, String) -> Unit,
+    onDelete: (String) -> Unit,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var editingConversation by remember { mutableStateOf<ChatConversation?>(null) }
+    var editingTitle by remember { mutableStateOf("") }
+    var deletingConversation by remember { mutableStateOf<ChatConversation?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Lịch sử chat") },
+        text = {
+            if (conversations.isEmpty()) {
+                Text(
+                    "Chưa có đoạn chat nào.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.height(320.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(conversations, key = { it.id }) { conversation ->
+                        TextButton(
+                            onClick = { onSelect(conversation.id) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (conversation.id == currentConversationId) {
+                                    "• ${conversation.title}"
+                                } else {
+                                    conversation.title
+                                },
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            IconButton(
+                                onClick = {
+                                    editingConversation = conversation
+                                    editingTitle = conversation.title
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Đổi tên chat"
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    deletingConversation = conversation
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Xóa chat",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Đóng")
+            }
+        }
+    )
+
+    val conversation = editingConversation
+    if (conversation != null) {
+        AlertDialog(
+            onDismissRequest = { editingConversation = null },
+            title = { Text("Đổi tên chat") },
+            text = {
+                OutlinedTextField(
+                    value = editingTitle,
+                    onValueChange = { editingTitle = it },
+                    singleLine = true,
+                    label = { Text("Tên đoạn chat") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onRename(conversation.id, editingTitle)
+                        editingConversation = null
+                    },
+                    enabled = editingTitle.isNotBlank()
+                ) {
+                    Text("Lưu")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingConversation = null }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
+
+    val conversationToDelete = deletingConversation
+    if (conversationToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { deletingConversation = null },
+            title = { Text("Xóa đoạn chat") },
+            text = {
+                Text("Bạn có chắc muốn xóa \"${conversationToDelete.title}\" không?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(conversationToDelete.id)
+                        deletingConversation = null
+                    }
+                ) {
+                    Text(
+                        "Xóa",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingConversation = null }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
+}
+
 @Composable
 private fun MessageBubble(message: ChatMessage) {
     val isUser = message.role == MessageRole.USER

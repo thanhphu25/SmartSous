@@ -1,6 +1,8 @@
 package com.example.smartsous.feature.search
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,8 +31,13 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +55,8 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val searchFocusRequester = remember { FocusRequester() }
 
     Column(
         modifier = modifier.fillMaxSize()
@@ -64,8 +73,15 @@ fun SearchScreen(
             OutlinedTextField(
                 value = uiState.filter.query,
                 onValueChange = { viewModel.onQueryChange(it) },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Tìm món ăn, nguyên liệu...") },
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(searchFocusRequester)
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused) {
+                            keyboardController?.show()
+                        }
+                    },
+                placeholder = { Text("Tìm tên món ăn...") },
                 leadingIcon = {
                     Icon(Icons.Default.Search, contentDescription = null)
                 },
@@ -77,6 +93,14 @@ fun SearchScreen(
                     }
                 },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        keyboardController?.hide()
+                    }
+                ),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Purple400
@@ -201,11 +225,11 @@ fun SearchScreen(
 
                 if (displayList.isEmpty() && uiState.filter.isEmpty) {
                     item {
-                        EmptyState(
-                            icon = Icons.Default.Search,
-                            title = "Tìm kiếm món ăn",
-                            subtitle = "Nhập tên món, nguyên liệu hoặc dùng bộ lọc",
-                            modifier = Modifier.fillParentMaxSize()
+                        SearchStartContent(
+                            modifier = Modifier.fillParentMaxSize(),
+                            onQuerySelect = viewModel::onQueryChange,
+                            onCookingTimeSelect = viewModel::onCookingTimeSelect,
+                            onCaloriesSelect = viewModel::onCaloriesSelect
                         )
                     }
                 }
@@ -239,6 +263,114 @@ fun SearchScreen(
             onDismiss = viewModel::closeFilterSheet
         )
     }
+}
+
+@Composable
+private fun SearchStartContent(
+    modifier: Modifier = Modifier,
+    onQuerySelect: (String) -> Unit,
+    onCookingTimeSelect: (Int) -> Unit,
+    onCaloriesSelect: (Int) -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = Spacing.xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.Search,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = Purple400.copy(alpha = 0.75f)
+        )
+        Spacer(Modifier.height(Spacing.md))
+        Text(
+            text = "Tìm kiếm món ăn",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        Text(
+            text = "Chọn gợi ý bên dưới hoặc nhập tên món",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(Spacing.lg))
+
+        QuickSearchSection(
+            title = "Từ khóa thịnh hành",
+            chips = listOf("Cá hồi", "Thịt bò", "Gà", "Tôm"),
+            onChipClick = onQuerySelect
+        )
+
+        Spacer(Modifier.height(Spacing.md))
+
+        Text(
+            text = "Danh mục hot",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(Spacing.xs))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            QuickSearchChip(label = "Món canh") { onQuerySelect("Canh") }
+            QuickSearchChip(label = "Món chay") { onQuerySelect("Chay") }
+            QuickSearchChip(label = "Dưới 30 phút") { onCookingTimeSelect(30) }
+            QuickSearchChip(label = "Giảm cân") { onCaloriesSelect(300) }
+        }
+    }
+}
+
+@Composable
+private fun QuickSearchSection(
+    title: String,
+    chips: List<String>,
+    onChipClick: (String) -> Unit
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(Modifier.height(Spacing.xs))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        chips.forEach { chip ->
+            QuickSearchChip(label = chip) {
+                onChipClick(chip)
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickSearchChip(
+    label: String,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = false,
+        onClick = onClick,
+        label = {
+            Text(label, style = MaterialTheme.typography.labelMedium)
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            labelColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
 }
 
 // Chip hiện filter đang active — bấm X để xoá filter đó

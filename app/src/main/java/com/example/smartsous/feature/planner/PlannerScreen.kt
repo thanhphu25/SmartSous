@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -41,7 +40,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.smartsous.core.common.Spacing
@@ -60,17 +58,13 @@ import java.time.format.DateTimeFormatter
 fun PlannerScreen(
     viewModel: PlannerViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
-
-    // Trạng thái hiển thị hướng dẫn
-    var showHint by remember { mutableStateOf(true) }
 
     if (pullRefreshState.isRefreshing) {
         LaunchedEffect(true) {
@@ -84,15 +78,6 @@ fun PlannerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .pointerInput(Unit) {
-                // Bắt sự kiện chạm vào màn hình để ẩn hướng dẫn
-                awaitPointerEventScope {
-                    while (showHint) {
-                        awaitPointerEvent(PointerEventPass.Initial)
-                        showHint = false
-                    }
-                }
-            }
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Text(
@@ -108,27 +93,28 @@ fun PlannerScreen(
             if (uiState.isLoading) {
                 RecipeListSkeleton()
             } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(7),
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .padding(horizontal = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     items(uiState.weekDates) { date ->
                         val dayMeals = uiState.plannedMeals.filter { it.date == date }
-                        DayColumn(
+                        DayCard(
                             date = date,
                             meals = dayMeals,
                             onDeleteMeal = { recipeId, mealType ->
                                 viewModel.removeMeal(recipeId, mealType, date)
                             },
-                            onLongClick = {
+                            onAddMealClick = {
                                 selectedDate = date
                                 showBottomSheet = true
                             }
                         )
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(Spacing.xxl))
                     }
                 }
             }
@@ -139,46 +125,19 @@ fun PlannerScreen(
             modifier = Modifier.align(Alignment.TopCenter)
         )
 
-        // Hướng dẫn ở góc dưới cùng bên trái
-        AnimatedVisibility(
-            visible = showHint,
-            exit = fadeOut(),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(Spacing.md)
-                .padding(bottom = 16.dp) // Tránh dính sát cạnh dưới
-        ) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f),
-                shape = RoundedCornerShape(8.dp),
-                shadowElevation = 4.dp
-            ) {
-                Text(
-                    text = "Nhấn giữ vào cột ngày để thêm món ăn",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-        }
+        // Hướng dẫn cũ đã được xóa
 
         if (showBottomSheet && selectedDate != null) {
             ModalBottomSheet(
-                onDismissRequest = { 
-                    showBottomSheet = false
-                    viewModel.onSearchQueryChange("") // Reset search when closed
-                },
+                onDismissRequest = { showBottomSheet = false },
                 sheetState = sheetState
             ) {
                 RecipePickerContent(
                     recipes = uiState.allRecipes,
-                    searchQuery = searchQuery,
-                    onSearchChange = viewModel::onSearchQueryChange,
-                    onRecipeSelected = { recipeId ->
-                        viewModel.addRecipeToPlan(recipeId, MealType.LUNCH, selectedDate!!)
+                    onRecipeSelected = { recipeId, mealType ->
+                        viewModel.addRecipeToPlan(recipeId, mealType, selectedDate!!)
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             showBottomSheet = false
-                            viewModel.onSearchQueryChange("") // Reset search after adding
                         }
                     }
                 )
@@ -188,114 +147,149 @@ fun PlannerScreen(
 }
 
 @Composable
-fun DayColumn(
+fun DayCard(
     date: LocalDate,
     meals: List<PlannerMealUiModel>,
     onDeleteMeal: (String, MealType) -> Unit,
-    onLongClick: () -> Unit
+    onAddMealClick: () -> Unit
 ) {
-    val formatter = DateTimeFormatter.ofPattern("dd/MM")
-    val dayOfWeek = date.dayOfWeek.name.take(3)
-    val haptic = LocalHapticFeedback.current
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    val dayOfWeek = when (date.dayOfWeek.value) {
+        1 -> "Thứ Hai"
+        2 -> "Thứ Ba"
+        3 -> "Thứ Tư"
+        4 -> "Thứ Năm"
+        5 -> "Thứ Sáu"
+        6 -> "Thứ Bảy"
+        7 -> "Chủ Nhật"
+        else -> ""
+    }
 
-    Column(
+    Card(
         modifier = Modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(8.dp))
-            .background(SurfaceDark.copy(alpha = 0.05f))
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onLongClick()
-                    }
-                )
-            }
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = SurfaceDark.copy(alpha = 0.05f)
+        )
     ) {
-        Text(text = dayOfWeek, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
-        Text(text = date.format(formatter), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (meals.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(vertical = 8.dp)
-                    .border(1.dp, Purple400.copy(alpha = 0.3f), RoundedCornerShape(4.dp)),
-                contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Nhấn giữ để thêm",
-                    tint = Purple400.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp)
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = dayOfWeek,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = date.format(formatter),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                FilledTonalButton(onClick = onAddMealClick) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Thêm món",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Thêm món")
+                }
             }
-        } else {
-            meals.forEach { meal ->
-                MealItem(
-                    meal = meal,
-                    onDelete = { onDeleteMeal(meal.recipeId, meal.mealType) }
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+
+            if (meals.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                val mealsByType = meals.groupBy { it.mealType }
+                val mealTypesOrder = listOf(MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER, MealType.SNACK)
+                
+                mealTypesOrder.forEach { type ->
+                    val typeMeals = mealsByType[type]
+                    if (!typeMeals.isNullOrEmpty()) {
+                        val typeLabel = when(type) {
+                            MealType.BREAKFAST -> "Bữa sáng"
+                            MealType.LUNCH -> "Bữa trưa"
+                            MealType.DINNER -> "Bữa tối"
+                            MealType.SNACK -> "Ăn vặt"
+                        }
+                        Text(
+                            text = typeLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 4.dp, top = 8.dp)
+                        )
+                        typeMeals.forEach { meal ->
+                            MealItemCard(
+                                meal = meal,
+                                onDelete = { onDeleteMeal(meal.recipeId, meal.mealType) }
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                    }
+                }
             }
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-fun MealItem(meal: PlannerMealUiModel, onDelete: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(4.dp))
-            .background(Purple100)
-            .padding(4.dp)
+fun MealItemCard(meal: PlannerMealUiModel, onDelete: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = Purple100
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 text = meal.name,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = Purple800,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 9.sp,
-                lineHeight = 10.sp
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-        }
-        
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(14.dp)
-                .offset(x = 2.dp, y = (-2).dp)
-                .clickable { onDelete() },
-            shape = CircleShape,
-            color = Color.Red.copy(alpha = 0.8f)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Xóa",
-                tint = Color.White,
-                modifier = Modifier.padding(2.dp)
-            )
+            
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Xóa",
+                    tint = Color.Red.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipePickerContent(
     recipes: List<Recipe>,
-    searchQuery: String,
-    onSearchChange: (String) -> Unit,
-    onRecipeSelected: (String) -> Unit
+    onRecipeSelected: (String, MealType) -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedMealType by remember { mutableStateOf(MealType.LUNCH) }
+    
+    val filteredRecipes = remember(searchQuery, recipes) {
+        if (searchQuery.isBlank()) recipes
+        else recipes.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -305,33 +299,42 @@ fun RecipePickerContent(
         Text(
             text = "Chọn món ăn để thêm",
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
         )
-
+        
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val options = listOf(
+                MealType.BREAKFAST to "Sáng",
+                MealType.LUNCH to "Trưa",
+                MealType.DINNER to "Tối",
+                MealType.SNACK to "Ăn vặt"
+            )
+            options.forEach { (type, label) ->
+                FilterChip(
+                    selected = selectedMealType == type,
+                    onClick = { selectedMealType = type },
+                    label = { Text(label) }
+                )
+            }
+        }
+        
         OutlinedTextField(
             value = searchQuery,
-            onValueChange = onSearchChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            placeholder = { Text("Tìm tên món, nguyên liệu...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchChange("") }) {
-                        Icon(Icons.Default.Close, contentDescription = "Xóa")
-                    }
-                }
-            },
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            placeholder = { Text("Tìm kiếm món ăn...") },
             singleLine = true,
             shape = RoundedCornerShape(12.dp)
         )
 
         LazyColumn(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(recipes) { recipe ->
+            items(filteredRecipes) { recipe ->
                 ListItem(
                     headlineContent = { Text(recipe.name) },
                     supportingContent = { Text(recipe.cuisine) },
@@ -358,7 +361,7 @@ fun RecipePickerContent(
                     },
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onRecipeSelected(recipe.id) }
+                        .clickable { onRecipeSelected(recipe.id, selectedMealType) }
                 )
             }
         }

@@ -25,19 +25,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,6 +85,7 @@ fun PantryScreen(
     viewModel: PantryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var ingredientPendingDelete by remember { mutableStateOf<Ingredient?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -89,11 +97,24 @@ fun PantryScreen(
                     vertical = Spacing.md
                 )
             ) {
-                Text(
-                    "Tủ lạnh 🧊",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Tủ lạnh 🧊",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onNavigateToScan) {
+                        Icon(
+                            Icons.Default.QrCodeScanner,
+                            contentDescription = "Quét barcode",
+                            tint = Purple400
+                        )
+                    }
+                }
                 Text(
                     "${uiState.allIngredients.size} nguyên liệu",
                     style = MaterialTheme.typography.bodyMedium,
@@ -103,13 +124,13 @@ fun PantryScreen(
 
             // ── Expiry warning banner ──────────────────────
             AnimatedVisibility(visible = uiState.expiringCount > 0) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.md)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Coral400.copy(alpha = 0.12f))
-                        .padding(Spacing.sm),
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.md)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Coral400.copy(alpha = 0.15f))
+                            .padding(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
@@ -183,8 +204,8 @@ fun PantryScreen(
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { dismissValue ->
                                 if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                                    viewModel.deleteIngredient(ingredient)
-                                    true
+                                    ingredientPendingDelete = ingredient
+                                    false
                                 } else false
                             }
                         )
@@ -223,7 +244,8 @@ fun PantryScreen(
                         ) {
                             IngredientRow(
                                 ingredient = ingredient,
-                                onClick = { viewModel.openEditSheet(ingredient) }
+                                onClick = { viewModel.openEditSheet(ingredient) },
+                                onDelete = { ingredientPendingDelete = ingredient }
                             )
                         }
                     }
@@ -236,7 +258,7 @@ fun PantryScreen(
             onClick = { viewModel.openAddSheet() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(Spacing.md),
+                .padding(end = Spacing.md, bottom = 96.dp),
             containerColor = Purple400,
             contentColor = Color.White
         ) {
@@ -253,12 +275,31 @@ fun PantryScreen(
                 onCategoryChange = viewModel::onCategoryChange,
                 onExpiryDateChange = viewModel::onExpiryDateChange,
                 onSave = viewModel::saveIngredient,
-                onDismiss = viewModel::closeSheet,
-                onScanBarcode = {
-                    viewModel.closeSheet()
-                    // Navigate sang màn hình scan
-                    // Dùng callback để tránh phụ thuộc navController trong composable
-                    onNavigateToScan()
+                onDismiss = viewModel::closeSheet
+            )
+        }
+
+        ingredientPendingDelete?.let { ingredient ->
+            AlertDialog(
+                onDismissRequest = { ingredientPendingDelete = null },
+                title = { Text("Xác nhận xóa") },
+                text = {
+                    Text("Bạn có chắc muốn xóa \"${ingredient.name}\" khỏi tủ lạnh không?")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteIngredient(ingredient)
+                            ingredientPendingDelete = null
+                        }
+                    ) {
+                        Text("Xóa", color = Coral400)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { ingredientPendingDelete = null }) {
+                        Text("Hủy")
+                    }
                 }
             )
         }
@@ -269,20 +310,24 @@ fun PantryScreen(
 fun IngredientRow(
     ingredient: Ingredient,
     onClick: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val expiryStatus = getExpiryStatus(ingredient.expiryDate)
 
-    Row(
+    androidx.compose.material3.Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { onClick() }
-            .padding(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
+        Row(
+            modifier = Modifier.padding(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -325,7 +370,19 @@ fun IngredientRow(
                 )
             }
         }
+
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Xóa ${ingredient.name}",
+                tint = Coral400
+            )
+        }
     }
+}
 }
 
 private fun getExpiryStatus(expiryDate: LocalDate?): Pair<String, Color>? {

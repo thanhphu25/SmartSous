@@ -21,10 +21,9 @@ data class RecipeDetailUiState(
 @HiltViewModel
 class RecipeDetailViewModel @Inject constructor(
     private val recipeRepository: IRecipeRepository,
-    savedStateHandle: SavedStateHandle   // tự inject recipeId từ navigation argument
+    savedStateHandle: SavedStateHandle
 ) : BaseViewModel() {
 
-    // Lấy recipeId từ navigation argument
     private val recipeId: String = checkNotNull(savedStateHandle["recipeId"])
 
     private val _uiState = MutableStateFlow(RecipeDetailUiState())
@@ -55,10 +54,21 @@ class RecipeDetailViewModel @Inject constructor(
 
     fun toggleFavorite() {
         val recipe = _uiState.value.recipe ?: return
+        val newFavoriteValue = !recipe.isFavorite
+
+        _uiState.update { state ->
+            state.copy(recipe = state.recipe?.copy(isFavorite = newFavoriteValue))
+        }
+
         safeLaunch {
-            recipeRepository.toggleFavorite(recipe.id, !recipe.isFavorite)
-            // Reload để UI cập nhật trạng thái favorite
-            loadRecipe()
+            try {
+                recipeRepository.toggleFavorite(recipe.id, newFavoriteValue)
+            } catch (e: Exception) {
+                _uiState.update { state ->
+                    state.copy(recipe = state.recipe?.copy(isFavorite = recipe.isFavorite))
+                }
+                throw e
+            }
         }
     }
 }

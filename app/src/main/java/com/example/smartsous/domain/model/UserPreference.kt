@@ -8,5 +8,7 @@ data class UserPreference(
     val preferLowFat: Boolean = false,
     val preferHighProtein: Boolean = false,
     val vegetarian: Boolean = false,
-    val maxCookingTimeMinutes: Int = 60
+    val maxCookingTimeMinutes: Int = 60,
+    val aiApiKey: String = "",
+    val aiModel: String = "llama-3.3-70b-versatile"
 )

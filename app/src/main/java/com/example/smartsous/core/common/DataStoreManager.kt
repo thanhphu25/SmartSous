@@ -39,6 +39,8 @@ class DataStoreManager @Inject constructor(
         val KEY_PREFER_HIGH_PROTEIN = booleanPreferencesKey("prefer_high_protein")
         val KEY_VEGETARIAN = booleanPreferencesKey("vegetarian")
         val KEY_MAX_COOKING_TIME = intPreferencesKey("max_cooking_time")
+        val KEY_AI_API_KEY = androidx.datastore.preferences.core.stringPreferencesKey("ai_api_key")
+        val KEY_AI_MODEL = androidx.datastore.preferences.core.stringPreferencesKey("ai_model")
 
         val KEY_EXPIRY_REMINDERS_ENABLED = booleanPreferencesKey("expiry_reminders_enabled")
         val KEY_MEAL_REMINDERS_ENABLED = booleanPreferencesKey("meal_reminders_enabled")
@@ -54,6 +56,12 @@ class DataStoreManager @Inject constructor(
     suspend fun markRecipesSeeded() {
         context.dataStore.edit { prefs ->
             prefs[KEY_RECIPES_SEEDED] = true
+        }
+    }
+
+    suspend fun resetRecipesSeededFlag() {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_RECIPES_SEEDED] = false
         }
     }
 
@@ -128,7 +136,9 @@ class DataStoreManager @Inject constructor(
             preferLowFat = this[KEY_PREFER_LOW_FAT] ?: false,
             preferHighProtein = this[KEY_PREFER_HIGH_PROTEIN] ?: false,
             vegetarian = this[KEY_VEGETARIAN] ?: false,
-            maxCookingTimeMinutes = this[KEY_MAX_COOKING_TIME] ?: 60
+            maxCookingTimeMinutes = this[KEY_MAX_COOKING_TIME] ?: 60,
+            aiApiKey = this[KEY_AI_API_KEY] ?: "",
+            aiModel = this[KEY_AI_MODEL] ?: "llama-3.3-70b-versatile"
         )
 
     private fun Preferences.toNotificationPreference(): NotificationPreference =

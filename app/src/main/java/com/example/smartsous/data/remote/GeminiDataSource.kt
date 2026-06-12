@@ -18,19 +18,18 @@ import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import com.example.smartsous.core.common.DataStoreManager
+import kotlinx.coroutines.flow.first
+
 @Singleton
-class GeminiDataSource @Inject constructor() {
+class GeminiDataSource @Inject constructor(
+    private val dataStoreManager: DataStoreManager
+) {
 
     companion object {
         // Groq endpoint — OpenAI compatible
         private const val BASE_URL =
             "https://api.groq.com/openai/v1/chat/completions"
-
-        // Model options:
-        // "llama-3.3-70b-versatile" — tốt nhất, free
-        // "llama-3.1-8b-instant"    — nhanh nhất
-        // "gemma2-9b-it"            — Google model trên Groq
-        private const val MODEL = "llama-3.3-70b-versatile"
 
         private const val TAG = "GeminiDataSource"
     }
@@ -42,13 +41,18 @@ class GeminiDataSource @Inject constructor() {
         chatHistory: List<ChatMessage> = emptyList()
     ): Flow<String> = flow {
 
+        val prefs = dataStoreManager.userPreferencesFlow.first()
+        val apiKey = prefs.aiApiKey.takeIf { it.isNotBlank() } ?: BuildConfig.GROQ_API_KEY
+        val model = prefs.aiModel.takeIf { it.isNotBlank() } ?: "llama-3.3-70b-versatile"
+
         Log.d(TAG, "=== GỌI GROQ === message: $userMessage")
 
         val body = buildGroqRequestBody(
             userMessage       = userMessage,
             systemContext     = systemContext,
             pantryIngredients = pantryIngredients,
-            chatHistory       = chatHistory
+            chatHistory       = chatHistory,
+            model             = model
         )
 
         val request = Request.Builder()
@@ -56,7 +60,7 @@ class GeminiDataSource @Inject constructor() {
             .post(body.toRequestBody("application/json".toMediaType()))
             .addHeader("Content-Type", "application/json")
             // Groq dùng Bearer token thay vì query param
-            .addHeader("Authorization", "Bearer ${BuildConfig.GROQ_API_KEY}")
+            .addHeader("Authorization", "Bearer $apiKey")
             .build()
 
         val response = GeminiClient.okHttp.newCall(request).execute()
@@ -94,10 +98,11 @@ class GeminiDataSource @Inject constructor() {
         userMessage: String,
         systemContext: String,
         pantryIngredients: List<Ingredient>,
-        chatHistory: List<ChatMessage>
+        chatHistory: List<ChatMessage>,
+        model: String
     ): String {
         val root = JSONObject()
-        root.put("model", MODEL)
+        root.put("model", model)
         root.put("stream", true)
         root.put("max_tokens", 1024)
         root.put("temperature", 0.7)

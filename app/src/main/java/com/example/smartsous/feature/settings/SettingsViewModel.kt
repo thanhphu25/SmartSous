@@ -186,6 +186,14 @@ class SettingsViewModel @Inject constructor(
         updatePreferences { it.copy(maxCookingTimeMinutes = value.coerceIn(10, 180)) }
     }
 
+    fun setAiApiKey(key: String) {
+        updatePreferences { it.copy(aiApiKey = key) }
+    }
+
+    fun setAiModel(model: String) {
+        updatePreferences { it.copy(aiModel = model) }
+    }
+
     fun setExpiryRemindersEnabled(enabled: Boolean) {
         safeLaunch {
             dataStoreManager.updateNotificationPreference {
@@ -285,6 +293,12 @@ class SettingsViewModel @Inject constructor(
     fun addTestMealPlanForToday() {
         safeLaunch {
             insertTestMealPlanForToday()
+        }
+    }
+
+    fun resetSeedFlag() {
+        safeLaunch {
+            dataStoreManager.resetRecipesSeededFlag()
         }
     }
 

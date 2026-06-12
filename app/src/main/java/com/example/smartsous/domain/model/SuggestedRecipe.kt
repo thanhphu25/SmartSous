@@ -2,17 +2,19 @@ package com.example.smartsous.domain.model
 
 data class SuggestedRecipe(
     val recipe: Recipe,
-    val score: Float,               // 0..100
-    val matchedIngredients: List<String>,   // nguyên liệu đang có
-    val missingIngredients: List<String>,   // nguyên liệu còn thiếu
-    val matchPercent: Int,          // % nguyên liệu khớp
-    val reason: SuggestionReason    // lý do chính được gợi ý
+    val score: Float,
+    val matchedIngredients: List<String>,
+    val missingIngredients: List<String>,
+    val matchPercent: Int,
+    val reason: SuggestionReason
 )
 
 enum class SuggestionReason {
-    PERFECT_MATCH,      // có đủ 100% nguyên liệu
-    HIGH_MATCH,         // có >70% nguyên liệu
-    HEALTHY_CHOICE,     // dinh dưỡng tốt
-    QUICK_COOK,         // nấu nhanh dưới 20 phút
-    NOT_COOKED_RECENTLY // chưa nấu món này gần đây
+    PERFECT_MATCH,
+    HIGH_MATCH,
+    USE_EXPIRING_SOON,
+    FAVORITE_PICK,
+    HEALTHY_CHOICE,
+    QUICK_COOK,
+    NOT_COOKED_RECENTLY
 }

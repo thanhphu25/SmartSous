@@ -16,6 +16,7 @@ import com.example.smartsous.domain.usecase.ChatWithAIUseCase
 import com.example.smartsous.domain.usecase.IntentDetector
 import com.example.smartsous.domain.usecase.SuggestMealsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
@@ -220,11 +222,13 @@ class ChatViewModel @Inject constructor(
             )
         }
 
-        val suggestions = suggestMealsUseCase(
-            allRecipes = allRecipes,
-            pantryIngredients = fakeIngredients,
-            topN = 3
-        )
+        val suggestions = withContext(Dispatchers.Default) {
+            suggestMealsUseCase(
+                allRecipes = allRecipes,
+                pantryIngredients = fakeIngredients,
+                topN = 3
+            )
+        }
 
         if (suggestions.isNotEmpty()) {
             val recipeMessage = ChatMessage(
@@ -273,11 +277,13 @@ class ChatViewModel @Inject constructor(
         }
 
         val allRecipes = recipeRepository.getAllRecipes().first()
-        val suggestions = suggestMealsUseCase(
-            allRecipes = allRecipes,
-            pantryIngredients = currentPantry,
-            topN = 3
-        )
+        val suggestions = withContext(Dispatchers.Default) {
+            suggestMealsUseCase(
+                allRecipes = allRecipes,
+                pantryIngredients = currentPantry,
+                topN = 3
+            )
+        }
 
         if (suggestions.isNotEmpty()) {
             val recipeMessage = ChatMessage(

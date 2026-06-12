@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -33,6 +34,7 @@ import com.example.smartsous.core.ui.navigation.AppNavGraph
 import com.example.smartsous.core.ui.navigation.SmartSousBottomBar
 import com.example.smartsous.ui.theme.SmartSousTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
 class SmartSousActivity : ComponentActivity() {
@@ -140,11 +142,29 @@ class SmartSousActivity : ComponentActivity() {
                     pendingNotificationRoute = null
                 }
 
-                val hideBottomBarRoutes = listOf("splash", "onboarding", "recipe/{recipeId}", "chat")
-                val showBottomBar = hideBottomBarRoutes.none { route ->
-                    currentRoute == route || currentRoute?.startsWith("recipe/") == true
+                val bottomBarRoutes = setOf(
+                    "home",
+                    "pantry",
+                    "search",
+                    "planner",
+                    "favorites",
+                    "settings"
+                )
+                val fabRoutes = setOf("home", "search", "planner", "favorites", "pantry")
+                var chromeVisible by remember { mutableStateOf(false) }
+
+                LaunchedEffect(currentRoute) {
+                    if (currentRoute in bottomBarRoutes) {
+                        chromeVisible = false
+                        delay(180)
+                        chromeVisible = true
+                    } else {
+                        chromeVisible = false
+                    }
                 }
-                val showFab = currentRoute in listOf("home", "search", "planner", "favorites", "pantry")
+
+                val showBottomBar = chromeVisible && currentRoute in bottomBarRoutes
+                val showFab = chromeVisible && currentRoute in fabRoutes
 
                 Scaffold(
                     bottomBar = {

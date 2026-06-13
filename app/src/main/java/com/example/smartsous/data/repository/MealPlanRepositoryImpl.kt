@@ -11,9 +11,11 @@ import com.example.smartsous.domain.model.MealType
 import com.example.smartsous.domain.repository.IMealPlanRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -33,27 +35,37 @@ class MealPlanRepositoryImpl @Inject constructor(
 
     override fun getMealPlanForWeek(startDate: LocalDate): Flow<List<MealPlan>> {
         val endDate = startDate.plusDays(6)
-        
-        // Listen to Firestore changes (+/- 30 days around the request date to minimize reads)
-        val fetchStart = startDate.minusDays(15).toString()
-        val fetchEnd = endDate.plusDays(15).toString()
-        
-        col?.whereGreaterThanOrEqualTo("date", fetchStart)
-            ?.whereLessThanOrEqualTo("date", fetchEnd)
-            ?.addSnapshotListener { snap, err ->
-                if (err != null) return@addSnapshotListener
-                val dtos = snap?.toObjects(MealPlanDto::class.java) ?: emptyList()
-                val plans = dtos.map { it.toDomain() }
-                val entities = plans.flatMap { it.toEntities() }
-                CoroutineScope(Dispatchers.IO).launch {
-                    entities.forEach { dao.upsert(it) }
+
+        return channelFlow {
+            // Listen to Firestore changes (+/- 15 days around the request date to minimize reads).
+            val fetchStart = startDate.minusDays(15).toString()
+            val fetchEnd = endDate.plusDays(15).toString()
+
+            val registration = col?.whereGreaterThanOrEqualTo("date", fetchStart)
+                ?.whereLessThanOrEqualTo("date", fetchEnd)
+                ?.addSnapshotListener { snap, err ->
+                    if (err != null) return@addSnapshotListener
+                    val dtos = snap?.toObjects(MealPlanDto::class.java) ?: emptyList()
+                    val plans = dtos.map { it.toDomain() }
+                    val entities = plans.flatMap { it.toEntities() }
+                    launch(Dispatchers.IO) {
+                        entities.forEach { dao.upsert(it) }
+                    }
                 }
+
+            val roomJob = launch {
+                dao.getForWeek(startDate.toString(), endDate.toString())
+                    .map { entities ->
+                        entities.groupBy { it.date }.map { (dateStr, group) ->
+                            group.toDomain(LocalDate.parse(dateStr))
+                        }
+                    }
+                    .collect { trySend(it) }
             }
-        
-        // Return Flow directly from Room
-        return dao.getForWeek(startDate.toString(), endDate.toString()).map { entities ->
-            entities.groupBy { it.date }.map { (dateStr, group) ->
-                group.toDomain(LocalDate.parse(dateStr))
+
+            awaitClose {
+                registration?.remove()
+                roomJob.cancel()
             }
         }
     }

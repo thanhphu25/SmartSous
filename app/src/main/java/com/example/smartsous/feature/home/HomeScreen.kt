@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -99,6 +100,13 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.height(Spacing.md))
             }
+        } else if (uiState.isRecommending) {
+            item {
+                RecommendationLoadingCard(
+                    modifier = Modifier.padding(horizontal = Spacing.md)
+                )
+                Spacer(Modifier.height(Spacing.md))
+            }
         }
 
         // ── Danh sách gợi ý ngang — món 2 đến 6 ─────────────
@@ -160,6 +168,31 @@ fun HomeScreen(
 }
 
 // Hero Card — card lớn hiện ở đầu màn hình
+@Composable
+private fun RecommendationLoadingCard(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(18.dp),
+            strokeWidth = 2.dp,
+            color = Purple400
+        )
+        Text(
+            "Đang gợi ý món phù hợp...",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = Purple400
+        )
+    }
+}
+
 @Composable
 private fun HeroRecipeCard(
     suggested: SuggestedRecipe,
@@ -320,6 +353,8 @@ private fun SuggestionBadge(
     val (text, color) = when (reason) {
         SuggestionReason.PERFECT_MATCH      -> "✅ Đủ nguyên liệu" to Teal400
         SuggestionReason.HIGH_MATCH         -> "🥬 $matchPercent% nguyên liệu" to Purple400
+        SuggestionReason.USE_EXPIRING_SOON  -> "⏳ Sắp hết hạn" to Purple400
+        SuggestionReason.FAVORITE_PICK      -> "❤️ Món yêu thích" to Purple400
         SuggestionReason.HEALTHY_CHOICE     -> "💚 Lành mạnh" to Teal400
         SuggestionReason.QUICK_COOK         -> "⚡ Nấu nhanh" to Purple400
         SuggestionReason.NOT_COOKED_RECENTLY -> "🆕 Món mới" to Purple400

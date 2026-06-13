@@ -936,6 +936,31 @@ private fun ChipRow(
 }
 
 @Composable
+private fun SingleChoiceChipRow(
+    options: List<String>,
+    selectedOption: String,
+    onSelect: (String) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        items(options) { option ->
+            val selected = option == selectedOption
+            FilterChip(
+                selected = selected,
+                onClick = { onSelect(option) },
+                label = { Text(option) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Purple400.copy(alpha = 0.15f),
+                    selectedLabelColor = Purple400
+                )
+            )
+        }
+    }
+}
+
+@Composable
 private fun SwitchRow(
     title: String,
     subtitle: String,

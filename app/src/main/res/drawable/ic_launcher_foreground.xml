@@ -1,30 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- Purple tile -->
     <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:fillColor="#7D73E6"
+        android:pathData="M26,18
+            L82,18
+            Q90,18 90,26
+            L90,82
+            Q90,90 82,90
+            L26,90
+            Q18,90 18,82
+            L18,26
+            Q18,18 26,18z" />
+
+    <!-- Handle shadow -->
+    <path
+        android:fillColor="#30000000"
+        android:pathData="M62.8,64.5
+            L78.7,80.4
+            Q80.4,82.1 78.6,83.9
+            Q76.8,85.6 75.1,83.9
+            L59.2,68z" />
+
+    <!-- Handle -->
+    <path
+        android:fillColor="#2C3038"
+        android:pathData="M61.6,61.8
+            L79,79.2
+            Q80.5,80.7 79,82.2
+            Q77.5,83.7 76,82.2
+            L58.6,64.8z" />
+
+    <!-- Handle highlight -->
+    <path
+        android:fillColor="#565C66"
+        android:pathData="M63.6,63
+            L77.1,76.5
+            Q77.7,77.1 77.1,77.7
+            Q76.5,78.3 75.9,77.7
+            L62.4,64.2z" />
+
+    <!-- Pan outer rim -->
+    <path
+        android:fillColor="#2C3038"
+        android:pathData="M51.5,29.5
+            A22.5,22.5 0,1 1,51.5,74.5
+            A22.5,22.5 0,1 1,51.5,29.5z" />
+
+    <!-- Pan rim highlight -->
+    <path
+        android:fillColor="#666B74"
+        android:pathData="M51.5,34
+            A18,18 0,1 1,51.5,70
+            A18,18 0,1 1,51.5,34z" />
+
+    <!-- Pan interior -->
+    <path
+        android:fillColor="#4A4F59"
+        android:pathData="M51.5,37.5
+            A14.5,14.5 0,1 1,51.5,66.5
+            A14.5,14.5 0,1 1,51.5,37.5z" />
+
+    <!-- Egg white -->
+    <path
+        android:fillColor="#F8F7F3"
+        android:pathData="M52,40.5
+            C59.2,40.5 64.6,45.4 64.6,52
+            C64.6,59 58.4,64 51.1,63.5
+            C44.4,63 39.4,58.5 39.3,52.4
+            C39.2,45.7 44.8,40.5 52,40.5z" />
+
+    <!-- Egg white lower shade -->
+    <path
+        android:fillColor="#E4E2DD"
+        android:pathData="M40.2,55.6
+            C43.1,60.8 49.6,63.2 56.1,61.2
+            C51.2,65.1 42.4,62.6 40.1,56.4z" />
+
+    <!-- Curved yolk -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M55.7,44.8
+            C60,45.6 62.4,49.2 61.3,53.4
+            C60.2,57.9 55.9,61.1 51.9,60
+            C48.5,59.1 47.1,55.8 48.8,51.8
+            C50.4,48 52.7,44.2 55.7,44.8z" />
+
+    <!-- Yolk shine -->
+    <path
+        android:fillColor="#FFD27A"
+        android:pathData="M55.7,47.1
+            C57.1,47.4 57.8,48.3 57.4,49.6
+            C57,50.8 55.8,51.7 54.7,51.4
+            C53.8,51.1 53.5,50.1 53.9,49.1
+            C54.4,47.9 55,46.9 55.7,47.1z" />
 </vector>

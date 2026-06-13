@@ -4,9 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,10 +17,9 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 sealed class Screen(val route: String, val label: String, val icon: @Composable () -> Unit) {
-    object Home : Screen("home", "Home", { Icon(Icons.Default.Home, contentDescription = null) })
-    object Pantry : Screen("pantry", "Pantry", { Icon(Icons.Default.Kitchen, contentDescription = null) })
-    object Search : Screen("search", "Search", { Icon(Icons.Default.Search, contentDescription = null) })
-    object Planner : Screen("planner", "Planner", { Icon(Icons.Default.Schedule, contentDescription = null) })
+    object Home : Screen("home", "Trang chủ", { Icon(Icons.Default.Home, contentDescription = null) })
+    object Pantry : Screen("pantry", "Tủ lạnh", { Icon(Icons.Default.Kitchen, contentDescription = null) })
+    object Planner : Screen("planner", "Kế hoạch", { Icon(Icons.Default.Schedule, contentDescription = null) })
     object Favorites : Screen(
         "favorites",
         "Yêu thích",
@@ -29,8 +27,8 @@ sealed class Screen(val route: String, val label: String, val icon: @Composable 
     )
     object Settings : Screen(
         "settings",
-        "Cài đặt",
-        { Icon(Icons.Default.Settings, contentDescription = null) }
+        "Cá nhân",
+        { Icon(Icons.Default.Person, contentDescription = null) }
     )
 }
 
@@ -39,7 +37,6 @@ fun SmartSousBottomBar(navController: NavController) {
     val items = listOf(
         Screen.Home,
         Screen.Pantry,
-        Screen.Search,
         Screen.Planner,
         Screen.Favorites,
         Screen.Settings

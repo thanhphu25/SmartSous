@@ -61,6 +61,9 @@ fun AppNavGraph(
                 //modifier = modifier,
                 onRecipeClick = { recipeId ->
                     navController.navigate("recipe/$recipeId")
+                },
+                onSearchClick = {
+                    navController.navigate("search")
                 }
             )
         }
@@ -70,6 +73,13 @@ fun AppNavGraph(
                 //modifier = modifier,
                 onRecipeClick = { recipeId ->
                     navController.navigate("recipe/$recipeId")
+                },
+                onBack = {
+                    if (!navController.popBackStack()) {
+                        navController.navigate("home") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    }
                 }
             )
         }

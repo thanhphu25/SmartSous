@@ -1,7 +1,9 @@
 package com.example.smartsous.feature.settings
 
 import android.app.Application
+import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkInfo
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.smartsous.core.common.BaseViewModel
@@ -59,6 +61,22 @@ class SettingsViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     private val workManager = WorkManager.getInstance(application)
+    private val expiryStatusLiveData =
+        workManager.getWorkInfosForUniqueWorkLiveData(ExpiryCheckWorker.WORK_NAME)
+    private val mealStatusLiveData =
+        workManager.getWorkInfosForUniqueWorkLiveData(MealReminderWorker.WORK_NAME)
+    private val expiryStatusObserver = Observer<List<WorkInfo>> { workInfos ->
+        val status = workInfos?.firstOrNull()?.state?.name ?: "NOT_SCHEDULED"
+        _uiState.update { state ->
+            state.copy(workerStatuses = state.workerStatuses + ("ExpiryCheck" to status))
+        }
+    }
+    private val mealStatusObserver = Observer<List<WorkInfo>> { workInfos ->
+        val status = workInfos?.firstOrNull()?.state?.name ?: "NOT_SCHEDULED"
+        _uiState.update { state ->
+            state.copy(workerStatuses = state.workerStatuses + ("MealReminder" to status))
+        }
+    }
 
     init {
         observeUserPreferences()
@@ -129,23 +147,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun observeWorkerStatus() {
-        workManager
-            .getWorkInfosForUniqueWorkLiveData(ExpiryCheckWorker.WORK_NAME)
-            .observeForever { workInfos ->
-                val status = workInfos?.firstOrNull()?.state?.name ?: "NOT_SCHEDULED"
-                _uiState.update { state ->
-                    state.copy(workerStatuses = state.workerStatuses + ("ExpiryCheck" to status))
-                }
-            }
-
-        workManager
-            .getWorkInfosForUniqueWorkLiveData(MealReminderWorker.WORK_NAME)
-            .observeForever { workInfos ->
-                val status = workInfos?.firstOrNull()?.state?.name ?: "NOT_SCHEDULED"
-                _uiState.update { state ->
-                    state.copy(workerStatuses = state.workerStatuses + ("MealReminder" to status))
-                }
-            }
+        expiryStatusLiveData.observeForever(expiryStatusObserver)
+        mealStatusLiveData.observeForever(mealStatusObserver)
     }
 
     fun toggleFavoriteCuisine(cuisine: String) {
@@ -246,12 +249,15 @@ class SettingsViewModel @Inject constructor(
             .build()
 
         workManager.enqueue(request)
-        workManager.getWorkInfoByIdLiveData(request.id)
-            .observeForever { info ->
+        val liveData = workManager.getWorkInfoByIdLiveData(request.id)
+        lateinit var observer: Observer<WorkInfo>
+        observer = Observer { info ->
                 if (info?.state?.isFinished == true) {
                     _uiState.update { it.copy(isTestingExpiry = false) }
+                    liveData.removeObserver(observer)
                 }
             }
+        liveData.observeForever(observer)
     }
 
     fun testMealReminder() {
@@ -265,12 +271,15 @@ class SettingsViewModel @Inject constructor(
                 .build()
 
             workManager.enqueue(request)
-            workManager.getWorkInfoByIdLiveData(request.id)
-                .observeForever { info ->
+            val liveData = workManager.getWorkInfoByIdLiveData(request.id)
+            lateinit var observer: Observer<WorkInfo>
+            observer = Observer { info ->
                     if (info?.state?.isFinished == true) {
                         _uiState.update { it.copy(isTestingMeal = false) }
+                        liveData.removeObserver(observer)
                     }
                 }
+            liveData.observeForever(observer)
         }
     }
 
@@ -345,4 +354,10 @@ class SettingsViewModel @Inject constructor(
 
     private fun Int.floorMod(mod: Int): Int =
         ((this % mod) + mod) % mod
+
+    override fun onCleared() {
+        expiryStatusLiveData.removeObserver(expiryStatusObserver)
+        mealStatusLiveData.removeObserver(mealStatusObserver)
+        super.onCleared()
+    }
 }

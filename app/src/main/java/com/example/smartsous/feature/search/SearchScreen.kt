@@ -1,5 +1,7 @@
 package com.example.smartsous.feature.search
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,10 +18,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -30,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -52,11 +59,16 @@ import com.example.smartsous.ui.theme.Purple400
 fun SearchScreen(
     modifier: Modifier = Modifier,
     onRecipeClick: (String) -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
     val searchFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        searchFocusRequester.requestFocus()
+    }
 
     Column(
         modifier = modifier.fillMaxSize()
@@ -83,7 +95,9 @@ fun SearchScreen(
                     },
                 placeholder = { Text("Tìm tên món ăn...") },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                    }
                 },
                 trailingIcon = {
                     if (uiState.filter.query.isNotEmpty()) {
@@ -229,7 +243,8 @@ fun SearchScreen(
                             modifier = Modifier.fillParentMaxSize(),
                             onQuerySelect = viewModel::onQueryChange,
                             onCookingTimeSelect = viewModel::onCookingTimeSelect,
-                            onCaloriesSelect = viewModel::onCaloriesSelect
+                            onCaloriesSelect = viewModel::onCaloriesSelect,
+                            onBlankClick = onBack
                         )
                     }
                 }
@@ -270,22 +285,24 @@ private fun SearchStartContent(
     modifier: Modifier = Modifier,
     onQuerySelect: (String) -> Unit,
     onCookingTimeSelect: (Int) -> Unit,
-    onCaloriesSelect: (Int) -> Unit
+    onCaloriesSelect: (Int) -> Unit,
+    onBlankClick: () -> Unit
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(onClick = onBlankClick)
             .padding(horizontal = Spacing.md, vertical = Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         Icon(
             Icons.Default.Search,
             contentDescription = null,
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(48.dp),
             tint = Purple400.copy(alpha = 0.75f)
         )
-        Spacer(Modifier.height(Spacing.md))
+        Spacer(Modifier.height(Spacing.sm))
         Text(
             text = "Tìm kiếm món ăn",
             style = MaterialTheme.typography.titleMedium,
@@ -299,31 +316,39 @@ private fun SearchStartContent(
         )
         Spacer(Modifier.height(Spacing.lg))
 
-        QuickSearchSection(
-            title = "Từ khóa thịnh hành",
-            chips = listOf("Cá hồi", "Thịt bò", "Gà", "Tôm"),
-            onChipClick = onQuerySelect
-        )
-
-        Spacer(Modifier.height(Spacing.md))
-
-        Text(
-            text = "Danh mục hot",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(Spacing.xs))
-        Row(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                .clickable(enabled = false) {},
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            QuickSearchChip(label = "Món canh") { onQuerySelect("Canh") }
-            QuickSearchChip(label = "Món chay") { onQuerySelect("Chay") }
-            QuickSearchChip(label = "Dưới 30 phút") { onCookingTimeSelect(30) }
-            QuickSearchChip(label = "Giảm cân") { onCaloriesSelect(300) }
+            Column(modifier = Modifier.padding(Spacing.md)) {
+                QuickSearchSection(
+                    title = "Từ khóa thịnh hành",
+                    chips = listOf("Cá hồi", "Thịt bò", "Gà", "Tôm"),
+                    onChipClick = onQuerySelect
+                )
+
+                Spacer(Modifier.height(Spacing.md))
+
+                QuickSearchSection(
+                    title = "Danh mục hot",
+                    chips = listOf("Món canh", "Món chay", "Dưới 30 phút", "Giảm cân"),
+                    onChipClick = { label ->
+                        when (label) {
+                            "Món canh" -> onQuerySelect("Canh")
+                            "Món chay" -> onQuerySelect("Chay")
+                            "Dưới 30 phút" -> onCookingTimeSelect(30)
+                            "Giảm cân" -> onCaloriesSelect(300)
+                            else -> onQuerySelect(label)
+                        }
+                    }
+                )
+            }
         }
     }
 }

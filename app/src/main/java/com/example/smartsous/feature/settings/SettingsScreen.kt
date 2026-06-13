@@ -1,7 +1,9 @@
 package com.example.smartsous.feature.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,10 +16,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Notifications
@@ -25,6 +30,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,16 +54,22 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -120,16 +133,22 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(Spacing.md))
 
-        PreferencesCard(
+        CookingProfileCard(
             preferences = uiState.preferences,
-            onCuisineToggle = viewModel::toggleFavoriteCuisine,
-            onAllergyToggle = viewModel::toggleAllergy,
-            onDislikedToggle = viewModel::toggleDislikedIngredient,
             onLowFatChange = viewModel::setLowFat,
             onHighProteinChange = viewModel::setHighProtein,
             onVegetarianChange = viewModel::setVegetarian,
             onTargetCaloriesChange = viewModel::setTargetCalories,
             onMaxCookingTimeChange = viewModel::setMaxCookingTime
+        )
+
+        Spacer(Modifier.height(Spacing.md))
+
+        TasteRestrictionCard(
+            preferences = uiState.preferences,
+            onCuisineToggle = viewModel::toggleFavoriteCuisine,
+            onAllergyToggle = viewModel::toggleAllergy,
+            onDislikedToggle = viewModel::toggleDislikedIngredient
         )
 
         Spacer(Modifier.height(Spacing.md))
@@ -219,30 +238,76 @@ fun SettingsScreen(
 
 @Composable
 private fun ProfileCard(uiState: SettingsUiState) {
-    SettingsCard(
-        title = "Hồ sơ",
-        subtitle = "Thông tin cơ bản của tài khoản hiện tại."
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(1.dp)
     ) {
-        SettingsInfoRow(
-            icon = Icons.Default.Person,
-            label = "Người dùng",
-            value = uiState.profileName
-        )
-        SettingsInfoRow(
-            icon = Icons.Default.Sync,
-            label = "Trạng thái đồng bộ",
-            value = uiState.syncStatus,
-            valueColor = Teal400
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(Purple400.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "S",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Purple400
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = uiState.profileName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Người dùng ẩn danh",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Sync,
+                        contentDescription = null,
+                        tint = Teal400,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = uiState.syncStatus,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Teal400,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun PreferencesCard(
+private fun CookingProfileCard(
     preferences: UserPreference,
-    onCuisineToggle: (String) -> Unit,
-    onAllergyToggle: (String) -> Unit,
-    onDislikedToggle: (String) -> Unit,
     onLowFatChange: (Boolean) -> Unit,
     onHighProteinChange: (Boolean) -> Unit,
     onVegetarianChange: (Boolean) -> Unit,
@@ -250,8 +315,64 @@ private fun PreferencesCard(
     onMaxCookingTimeChange: (Int) -> Unit
 ) {
     SettingsCard(
-        title = "Sở thích ăn uống",
-        subtitle = "Các lựa chọn này sẽ dùng cho gợi ý món, search và chatbot."
+        title = "Hồ sơ nấu ăn",
+        subtitle = "SmartSous dùng hồ sơ này để cá nhân hóa gợi ý món và chatbot.",
+        initiallyExpanded = true,
+        collapsible = false
+    ) {
+        StepperRow(
+            title = "Mục tiêu calo mỗi bữa",
+            value = "${preferences.targetCaloriesPerMeal} kcal",
+            onDecrease = {
+                onTargetCaloriesChange(preferences.targetCaloriesPerMeal - 50)
+            },
+            onIncrease = {
+                onTargetCaloriesChange(preferences.targetCaloriesPerMeal + 50)
+            }
+        )
+        StepperRow(
+            title = "Thời gian nấu tối đa",
+            value = "${preferences.maxCookingTimeMinutes} phút",
+            onDecrease = {
+                onMaxCookingTimeChange(preferences.maxCookingTimeMinutes - 5)
+            },
+            onIncrease = {
+                onMaxCookingTimeChange(preferences.maxCookingTimeMinutes + 5)
+            }
+        )
+
+        Spacer(Modifier.height(Spacing.xs))
+        SwitchRow(
+            title = "Ăn chay",
+            subtitle = "Ưu tiên món không dùng thịt/cá.",
+            checked = preferences.vegetarian,
+            onCheckedChange = onVegetarianChange
+        )
+        SwitchRow(
+            title = "Ít béo",
+            subtitle = "Ưu tiên món có lượng fat thấp hơn.",
+            checked = preferences.preferLowFat,
+            onCheckedChange = onLowFatChange
+        )
+        SwitchRow(
+            title = "Giàu protein",
+            subtitle = "Ưu tiên món nhiều protein.",
+            checked = preferences.preferHighProtein,
+            onCheckedChange = onHighProteinChange
+        )
+    }
+}
+
+@Composable
+private fun TasteRestrictionCard(
+    preferences: UserPreference,
+    onCuisineToggle: (String) -> Unit,
+    onAllergyToggle: (String) -> Unit,
+    onDislikedToggle: (String) -> Unit
+) {
+    SettingsCard(
+        title = "Khẩu vị & hạn chế",
+        subtitle = "Các lựa chọn này dùng cho gợi ý món, search và chatbot."
     ) {
         SectionLabel("Ẩm thực yêu thích")
         ChipRow(
@@ -276,52 +397,6 @@ private fun PreferencesCard(
             options = dislikedOptions,
             selectedOptions = preferences.dislikedIngredients,
             onToggle = onDislikedToggle
-        )
-
-        Spacer(Modifier.height(Spacing.sm))
-        HorizontalDivider()
-        Spacer(Modifier.height(Spacing.sm))
-
-        SwitchRow(
-            title = "Ăn chay",
-            subtitle = "Ưu tiên món không dùng thịt/cá.",
-            checked = preferences.vegetarian,
-            onCheckedChange = onVegetarianChange
-        )
-        SwitchRow(
-            title = "Ít béo",
-            subtitle = "Ưu tiên món có lượng fat thấp hơn.",
-            checked = preferences.preferLowFat,
-            onCheckedChange = onLowFatChange
-        )
-        SwitchRow(
-            title = "Giàu protein",
-            subtitle = "Ưu tiên món nhiều protein.",
-            checked = preferences.preferHighProtein,
-            onCheckedChange = onHighProteinChange
-        )
-
-        Spacer(Modifier.height(Spacing.sm))
-
-        StepperRow(
-            title = "Calories mục tiêu mỗi bữa",
-            value = "${preferences.targetCaloriesPerMeal} kcal",
-            onDecrease = {
-                onTargetCaloriesChange(preferences.targetCaloriesPerMeal - 50)
-            },
-            onIncrease = {
-                onTargetCaloriesChange(preferences.targetCaloriesPerMeal + 50)
-            }
-        )
-        StepperRow(
-            title = "Thời gian nấu tối đa",
-            value = "${preferences.maxCookingTimeMinutes} phút",
-            onDecrease = {
-                onMaxCookingTimeChange(preferences.maxCookingTimeMinutes - 5)
-            },
-            onIncrease = {
-                onMaxCookingTimeChange(preferences.maxCookingTimeMinutes + 5)
-            }
         )
     }
 }
@@ -506,6 +581,8 @@ private fun AiSettingsCard(
     onApiKeyChange: (String) -> Unit,
     onModelChange: (String) -> Unit
 ) {
+    var showApiKey by rememberSaveable { mutableStateOf(false) }
+
     SettingsCard(
         title = "Cài đặt AI",
         subtitle = "Cấu hình mô hình AI và API Key cho SmartSous."
@@ -515,6 +592,24 @@ private fun AiSettingsCard(
             onValueChange = onApiKeyChange,
             label = "Groq API Key",
             placeholder = "Nhập Groq API Key của bạn (tuỳ chọn)",
+            keyboardType = KeyboardType.Password,
+            visualTransformation = if (showApiKey) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                IconButton(onClick = { showApiKey = !showApiKey }) {
+                    Icon(
+                        imageVector = if (showApiKey) {
+                            Icons.Default.VisibilityOff
+                        } else {
+                            Icons.Default.Visibility
+                        },
+                        contentDescription = if (showApiKey) "Ẩn API key" else "Hiện API key"
+                    )
+                }
+            },
             singleLine = true
         )
 
@@ -559,8 +654,13 @@ private fun SingleChoiceChipRow(
 private fun SettingsCard(
     title: String,
     subtitle: String? = null,
+    initiallyExpanded: Boolean = false,
+    collapsible: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+    val showContent = expanded || !collapsible
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -572,20 +672,46 @@ private fun SettingsCard(
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            subtitle?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (collapsible) {
+                            Modifier.clickable { expanded = !expanded }
+                        } else {
+                            Modifier
+                        }
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    subtitle?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (collapsible) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Thu gọn" else "Mở rộng",
+                        tint = Purple400
+                    )
+                }
             }
-            Spacer(Modifier.height(Spacing.sm))
-            content()
+
+            if (showContent) {
+                Spacer(Modifier.height(Spacing.sm))
+                content()
+            }
         }
     }
 }

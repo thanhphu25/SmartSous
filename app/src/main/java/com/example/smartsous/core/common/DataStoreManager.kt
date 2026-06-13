@@ -98,6 +98,8 @@ class DataStoreManager @Inject constructor(
             prefs[KEY_PREFER_HIGH_PROTEIN] = updated.preferHighProtein
             prefs[KEY_VEGETARIAN] = updated.vegetarian
             prefs[KEY_MAX_COOKING_TIME] = updated.maxCookingTimeMinutes
+            prefs[KEY_AI_API_KEY] = updated.aiApiKey
+            prefs[KEY_AI_MODEL] = updated.aiModel
         }
     }
 

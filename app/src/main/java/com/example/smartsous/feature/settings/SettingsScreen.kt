@@ -30,8 +30,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -66,16 +64,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.smartsous.BuildConfig
 import com.example.smartsous.core.common.Spacing
-import com.example.smartsous.core.ui.components.AppTextField
 import com.example.smartsous.domain.model.NotificationPreference
 import com.example.smartsous.domain.model.UserPreference
 import com.example.smartsous.ui.theme.Amber400
@@ -164,10 +158,32 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(Spacing.md))
 
-        AiSettingsCard(
-            preferences = uiState.preferences,
-            onApiKeyChange = viewModel::setAiApiKey,
-            onModelChange = viewModel::setAiModel
+        NotificationDemoCard(
+            uiState = uiState,
+            onAddTestIngredient = {
+                viewModel.addTestExpiringIngredient()
+                scope.launch {
+                    snackbarHostState.showSnackbar("Đã thêm nguyên liệu sắp hết hạn để demo")
+                }
+            },
+            onTestExpiry = {
+                viewModel.testExpiryNotification()
+                scope.launch {
+                    snackbarHostState.showSnackbar("Đã trigger thông báo hết hạn")
+                }
+            },
+            onAddTestMealPlan = {
+                viewModel.addTestMealPlanForToday()
+                scope.launch {
+                    snackbarHostState.showSnackbar("Đã thêm meal plan hôm nay để demo")
+                }
+            },
+            onTestMeal = {
+                viewModel.testMealReminder()
+                scope.launch {
+                    snackbarHostState.showSnackbar("Đã trigger thông báo kế hoạch ăn")
+                }
+            }
         )
 
         if (isDeveloperModeEnabled) {
@@ -475,6 +491,93 @@ private fun PantryAndNotificationCard(
 }
 
 @Composable
+private fun NotificationDemoCard(
+    uiState: SettingsUiState,
+    onAddTestIngredient: () -> Unit,
+    onTestExpiry: () -> Unit,
+    onAddTestMealPlan: () -> Unit,
+    onTestMeal: () -> Unit
+) {
+    SettingsCard(
+        title = "Test thông báo",
+        subtitle = "Mở để demo nhanh các loại thông báo của SmartSous."
+    ) {
+        NotificationTestButton(
+            icon = Icons.Default.Kitchen,
+            title = "Tạo nguyên liệu sắp hết hạn",
+            description = "Thêm một nguyên liệu test hết hạn ngày mai vào Tủ lạnh.",
+            buttonText = "Tạo dữ liệu",
+            buttonColor = Amber400,
+            enabled = true,
+            onClick = onAddTestIngredient
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        NotificationTestButton(
+            icon = Icons.Default.Warning,
+            title = "Thông báo nguyên liệu hết hạn",
+            description = "Trigger cảnh báo nguyên liệu sắp hết hạn ngay lập tức.",
+            buttonText = if (uiState.isTestingExpiry) "Đang chạy..." else "Gửi thử",
+            buttonColor = Coral400,
+            enabled = !uiState.isTestingExpiry,
+            onClick = onTestExpiry
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        NotificationTestButton(
+            icon = Icons.Default.Restaurant,
+            title = "Tạo kế hoạch ăn hôm nay",
+            description = "Thêm meal plan test để thông báo có nội dung minh họa.",
+            buttonText = "Tạo dữ liệu",
+            buttonColor = Teal400,
+            enabled = true,
+            onClick = onAddTestMealPlan
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        NotificationTestButton(
+            icon = Icons.Default.Notifications,
+            title = "Thông báo kế hoạch ăn",
+            description = "Trigger nhắc kế hoạch ăn hôm nay ngay lập tức.",
+            buttonText = if (uiState.isTestingMeal) "Đang chạy..." else "Gửi thử",
+            buttonColor = Purple400,
+            enabled = !uiState.isTestingMeal,
+            onClick = onTestMeal
+        )
+
+        if (uiState.workerStatuses.isNotEmpty()) {
+            Spacer(Modifier.height(Spacing.sm))
+            HorizontalDivider()
+            Spacer(Modifier.height(Spacing.sm))
+            SectionLabel("Trạng thái demo")
+            uiState.workerStatuses.forEach { (name, status) ->
+                SettingsInfoRow(
+                    icon = Icons.Default.Schedule,
+                    label = name,
+                    value = status,
+                    valueColor = when {
+                        status.contains("RUNNING") -> Teal400
+                        status.contains("ENQUEUED") -> Purple400
+                        status.contains("SUCCEEDED") -> Teal400
+                        status.contains("FAILED") -> Coral400
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DeveloperToolsCard(
     uiState: SettingsUiState,
     onTestExpiry: () -> Unit,
@@ -570,81 +673,6 @@ private fun DeveloperToolsCard(
                     status.contains("FAILED") -> Coral400
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
-            )
-        }
-    }
-}
-
-@Composable
-private fun AiSettingsCard(
-    preferences: UserPreference,
-    onApiKeyChange: (String) -> Unit,
-    onModelChange: (String) -> Unit
-) {
-    var showApiKey by rememberSaveable { mutableStateOf(false) }
-
-    SettingsCard(
-        title = "Cài đặt AI",
-        subtitle = "Cấu hình mô hình AI và API Key cho SmartSous."
-    ) {
-        AppTextField(
-            value = preferences.aiApiKey,
-            onValueChange = onApiKeyChange,
-            label = "Groq API Key",
-            placeholder = "Nhập Groq API Key của bạn (tuỳ chọn)",
-            keyboardType = KeyboardType.Password,
-            visualTransformation = if (showApiKey) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
-            trailingIcon = {
-                IconButton(onClick = { showApiKey = !showApiKey }) {
-                    Icon(
-                        imageVector = if (showApiKey) {
-                            Icons.Default.VisibilityOff
-                        } else {
-                            Icons.Default.Visibility
-                        },
-                        contentDescription = if (showApiKey) "Ẩn API key" else "Hiện API key"
-                    )
-                }
-            },
-            singleLine = true
-        )
-
-        Spacer(Modifier.height(Spacing.sm))
-        
-        SectionLabel("Mô hình AI")
-        val aiModels = listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it")
-        SingleChoiceChipRow(
-            options = aiModels,
-            selectedOption = preferences.aiModel,
-            onSelect = onModelChange
-        )
-    }
-}
-
-@Composable
-private fun SingleChoiceChipRow(
-    options: List<String>,
-    selectedOption: String,
-    onSelect: (String) -> Unit
-) {
-    LazyRow(
-        contentPadding = PaddingValues(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        items(options) { option ->
-            val selected = option == selectedOption
-            FilterChip(
-                selected = selected,
-                onClick = { onSelect(option) },
-                label = { Text(option) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Purple400.copy(alpha = 0.15f),
-                    selectedLabelColor = Purple400
-                )
             )
         }
     }

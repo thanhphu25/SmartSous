@@ -6,7 +6,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.smartsous.core.common.DataStoreManager
+import com.example.smartsous.data.local.dao.AppNotificationDao
 import com.example.smartsous.data.local.dao.MealPlanDao
+import com.example.smartsous.data.local.entity.AppNotificationEntity
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -17,6 +19,7 @@ class MealReminderWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val mealPlanDao: MealPlanDao,
+    private val appNotificationDao: AppNotificationDao,
     private val dataStoreManager: DataStoreManager,
     private val notificationHelper: NotificationHelper
 ) : CoroutineWorker(context, params) {
@@ -40,7 +43,19 @@ class MealReminderWorker @AssistedInject constructor(
                 .first()
 
             val summary = MealReminderPolicy.buildMealSummary(todayPlans)
+            val message = NotificationMessageFactory.mealPlan(summary)
             notificationHelper.showMealReminderNotification(summary)
+            appNotificationDao.upsert(
+                AppNotificationEntity(
+                    id = "meal_plan:$today",
+                    type = "MEAL_PLAN",
+                    title = message.title,
+                    body = message.body,
+                    route = "planner",
+                    referenceId = today,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
             Log.d(TAG, "Sent meal reminder: $summary")
 
             Result.success()

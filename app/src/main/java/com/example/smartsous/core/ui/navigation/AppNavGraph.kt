@@ -64,6 +64,16 @@ fun AppNavGraph(
                 },
                 onSearchClick = {
                     navController.navigate("search")
+                },
+                onNotificationNavigate = { route ->
+                    navController.navigate(route) {
+                        popUpTo("home") {
+                            inclusive = false
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
                 }
             )
         }

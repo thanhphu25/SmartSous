@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,16 +21,30 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,19 +60,28 @@ import coil.compose.AsyncImage
 import com.example.smartsous.core.common.Spacing
 import com.example.smartsous.core.ui.components.RecipeCard
 import com.example.smartsous.core.ui.components.RecipeListSkeleton
+import com.example.smartsous.data.local.entity.AppNotificationEntity
 import com.example.smartsous.domain.model.SuggestedRecipe
 import com.example.smartsous.domain.model.SuggestionReason
 import com.example.smartsous.ui.theme.Purple400
 import com.example.smartsous.ui.theme.Teal400
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
     onRecipeClick: (String) -> Unit = {},
     onSearchClick: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    onNotificationNavigate: (String) -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel(),
+    notificationViewModel: HomeNotificationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val notifications by notificationViewModel.notifications.collectAsStateWithLifecycle()
+    val unreadCount by notificationViewModel.unreadCount.collectAsStateWithLifecycle()
+    var showNotificationSheet by remember { mutableStateOf(false) }
 
     if (uiState.isLoading && uiState.allRecipes.isEmpty()) {
         RecipeListSkeleton()
@@ -96,6 +120,10 @@ fun HomeScreen(
                     )
                 }
                 HomeSearchBar(onClick = onSearchClick)
+                HomeNotificationButton(
+                    unreadCount = unreadCount,
+                    onClick = { showNotificationSheet = true }
+                )
             }
         }
 
@@ -180,6 +208,18 @@ fun HomeScreen(
             )
         }
     }
+
+    if (showNotificationSheet) {
+        NotificationInboxSheet(
+            notifications = notifications,
+            onDismiss = { showNotificationSheet = false },
+            onNotificationClick = { notification ->
+                notificationViewModel.markAsRead(notification.id)
+                showNotificationSheet = false
+                onNotificationNavigate(notification.route)
+            }
+        )
+    }
 }
 
 // Hero Card — card lớn hiện ở đầu màn hình
@@ -227,6 +267,219 @@ private fun HomeSearchBar(
         }
     }
 }
+
+@Composable
+private fun HomeNotificationButton(
+    unreadCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .size(40.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            BadgedBox(
+                badge = {
+                    if (unreadCount > 0) {
+                        Badge(
+                            containerColor = Color(0xFFE53935),
+                            contentColor = Color.White
+                        ) {
+                            Text(
+                                text = unreadCount.coerceAtMost(99).toString(),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = if (unreadCount > 0) {
+                        Icons.Default.Notifications
+                    } else {
+                        Icons.Default.NotificationsNone
+                    },
+                    contentDescription = "Thông báo",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NotificationInboxSheet(
+    notifications: List<AppNotificationEntity>,
+    onDismiss: () -> Unit,
+    onNotificationClick: (AppNotificationEntity) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md)
+                .padding(bottom = Spacing.lg)
+        ) {
+            Text(
+                text = "Thông báo",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(Spacing.sm))
+
+            if (notifications.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Chưa có thông báo nào",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 460.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    items(
+                        items = notifications,
+                        key = { it.id }
+                    ) { notification ->
+                        NotificationInboxItem(
+                            notification = notification,
+                            onClick = { onNotificationClick(notification) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationInboxItem(
+    notification: AppNotificationEntity,
+    onClick: () -> Unit
+) {
+    val isUnread = notification.readAt == null
+    val accentColor = when (notification.type) {
+        "EXPIRY" -> Color(0xFFE86A33)
+        else -> Purple400
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isUnread) {
+                accentColor.copy(alpha = 0.09f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(accentColor.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (notification.type == "EXPIRY") {
+                        Icons.Default.Kitchen
+                    } else {
+                        Icons.AutoMirrored.Filled.EventNote
+                    },
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = notification.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (isUnread) FontWeight.Bold else FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (isUnread) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(RoundedCornerShape(percent = 50))
+                                .background(Color(0xFFE53935))
+                        )
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = notification.body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = formatNotificationTime(notification.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                )
+            }
+        }
+    }
+}
+
+private fun formatNotificationTime(epochMillis: Long): String =
+    Instant.ofEpochMilli(epochMillis)
+        .atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofPattern("HH:mm dd/MM"))
 
 @Composable
 private fun RecommendationLoadingCard(

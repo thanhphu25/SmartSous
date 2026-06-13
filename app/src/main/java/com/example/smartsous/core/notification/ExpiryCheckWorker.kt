@@ -6,7 +6,9 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.smartsous.core.common.DataStoreManager
+import com.example.smartsous.data.local.dao.AppNotificationDao
 import com.example.smartsous.data.local.dao.IngredientDao
+import com.example.smartsous.data.local.entity.AppNotificationEntity
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -18,6 +20,7 @@ class ExpiryCheckWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val ingredientDao: IngredientDao,
+    private val appNotificationDao: AppNotificationDao,
     private val dataStoreManager: DataStoreManager,
     private val notificationHelper: NotificationHelper
 ) : CoroutineWorker(context, params) {
@@ -56,12 +59,24 @@ class ExpiryCheckWorker @AssistedInject constructor(
                 }
 
                 if (ExpiryNotificationPolicy.shouldNotify(daysLeft)) {
+                    val message = NotificationMessageFactory.expiry(entity.name, daysLeft)
                     notificationHelper.showExpiryNotification(
                         ingredientName = entity.name,
                         daysLeft = daysLeft,
                         notificationId = ExpiryNotificationPolicy.notificationId(
                             ingredientId = entity.id,
                             daysLeft = daysLeft
+                        )
+                    )
+                    appNotificationDao.upsert(
+                        AppNotificationEntity(
+                            id = "expiry:${entity.id}:$daysLeft:$today",
+                            type = "EXPIRY",
+                            title = message.title,
+                            body = message.body,
+                            route = "pantry",
+                            referenceId = entity.id,
+                            createdAt = System.currentTimeMillis()
                         )
                     )
                     Log.d(TAG, "Sent expiry notification: ${entity.name}, daysLeft=$daysLeft")

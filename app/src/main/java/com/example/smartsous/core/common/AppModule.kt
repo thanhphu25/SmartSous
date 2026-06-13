@@ -21,6 +21,7 @@ object AppModule {
     fun provideDatabase(@ApplicationContext ctx: Context): SmartSousDatabase =
         Room.databaseBuilder(ctx, SmartSousDatabase::class.java, "smartsous.db")
             .addMigrations(SmartSousDatabase.MIGRATION_1_2)
+            .addMigrations(SmartSousDatabase.MIGRATION_2_3)
             .fallbackToDestructiveMigration() // chỉ dùng khi dev, bỏ khi release
             .build()
 
@@ -28,4 +29,5 @@ object AppModule {
     @Provides fun provideIngredientDao(db: SmartSousDatabase) = db.ingredientDao()
     @Provides fun provideMealPlanDao(db: SmartSousDatabase) = db.mealPlanDao()
     @Provides fun provideChatMessageDao(db: SmartSousDatabase) = db.chatMessageDao()
+    @Provides fun provideAppNotificationDao(db: SmartSousDatabase) = db.appNotificationDao()
 }

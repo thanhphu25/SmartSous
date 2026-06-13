@@ -1,5 +1,7 @@
 package com.example.smartsous.feature.recipedetail
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -26,6 +28,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.CircularProgressIndicator
@@ -297,6 +301,8 @@ private fun IngredientsTab(recipe: Recipe) {
 // ── Tab 2: Cách nấu ──────────────────────────────────────
 @Composable
 private fun StepsTab(recipe: Recipe) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -309,6 +315,52 @@ private fun StepsTab(recipe: Recipe) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(Spacing.md))
+
+        // YouTube Banner
+        androidx.compose.material3.Surface(
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/channel/UC-2EWHDbHnx5JOeyWfLdIxQ"))
+                context.startActivity(intent)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Spacing.lg),
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFFFFF0F0) // Pale red background
+        ) {
+            Row(
+                modifier = Modifier.padding(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFFFF0000), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "YouTube",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(Modifier.width(Spacing.md))
+                Column {
+                    Text(
+                        text = "Video Hướng Dẫn",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFFD32F2F),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Xem chi tiết trên kênh YouTube",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFD32F2F).copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
 
         recipe.steps.forEachIndexed { index, step ->
             Row(

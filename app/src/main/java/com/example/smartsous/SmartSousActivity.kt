@@ -11,12 +11,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -25,7 +32,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -145,12 +155,11 @@ class SmartSousActivity : ComponentActivity() {
                 val bottomBarRoutes = setOf(
                     "home",
                     "pantry",
-                    "search",
                     "planner",
                     "favorites",
                     "settings"
                 )
-                val fabRoutes = setOf("home", "search", "planner", "favorites", "pantry")
+                val fabRoutes = setOf("home")
                 var chromeVisible by remember { mutableStateOf(false) }
                 var chromeUnlocked by remember { mutableStateOf(false) }
 
@@ -183,13 +192,41 @@ class SmartSousActivity : ComponentActivity() {
                         if (showFab) {
                             FloatingActionButton(
                                 onClick = { navController.navigate("chat") },
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "Mo tro ly AI"
+                                modifier = Modifier.offset(x = 8.dp),
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                elevation = FloatingActionButtonDefaults.elevation(
+                                    defaultElevation = 8.dp,
+                                    pressedElevation = 12.dp,
+                                    focusedElevation = 10.dp,
+                                    hoveredElevation = 10.dp
                                 )
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(30.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Restaurant,
+                                        contentDescription = "Mở trợ lý nấu ăn",
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(15.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.secondaryContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ChatBubble,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.size(10.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

@@ -80,7 +80,11 @@ import kotlinx.coroutines.launch
 
 private val cuisineOptions = listOf("Việt", "Nhật", "Hàn", "Ý", "Thái", "Âu")
 private val allergyOptions = listOf("Hải sản", "Sữa", "Đậu phộng", "Trứng", "Gluten")
-private val dislikedOptions = listOf("Hành", "Tỏi", "Ớt", "Nấm", "Rau mùi")
+private val dislikedOptions = listOf("Hành", "Tỏi", "Ớt", "Rau mùi")
+private val genderOptions = listOf("Nam", "Nữ", "Khác")
+private val activityOptions = listOf("Ít", "Vừa", "Mạnh")
+private val healthGoalOptions = listOf("Giảm cân", "Tăng cơ", "Duy trì sức khỏe", "Tiểu đường", "Cao huyết áp")
+private val dietaryTypeOptions = listOf("Không có yêu cầu", "Ăn chay", "Keto", "Low-carb")
 
 @Composable
 fun SettingsScreen(
@@ -124,6 +128,19 @@ fun SettingsScreen(
         }
 
         ProfileCard(uiState)
+
+        Spacer(Modifier.height(Spacing.md))
+
+        PersonalProfileCard(
+            preferences = uiState.preferences,
+            onAgeChange = viewModel::setAge,
+            onGenderChange = viewModel::setGender,
+            onWeightChange = viewModel::setWeight,
+            onHeightChange = viewModel::setHeight,
+            onActivityLevelChange = viewModel::setActivityLevel,
+            onHealthGoalChange = viewModel::setHealthGoal,
+            onDietaryTypeChange = viewModel::setDietaryType
+        )
 
         Spacer(Modifier.height(Spacing.md))
 
@@ -322,6 +339,111 @@ private fun ProfileCard(uiState: SettingsUiState) {
 }
 
 @Composable
+private fun PersonalProfileCard(
+    preferences: UserPreference,
+    onAgeChange: (Int) -> Unit,
+    onGenderChange: (String) -> Unit,
+    onWeightChange: (Float) -> Unit,
+    onHeightChange: (Float) -> Unit,
+    onActivityLevelChange: (String) -> Unit,
+    onHealthGoalChange: (String) -> Unit,
+    onDietaryTypeChange: (String) -> Unit
+) {
+    SettingsCard(
+        title = "Chỉ số cơ thể & Mục tiêu",
+        subtitle = "Thông tin cơ bản để tính toán BMI và nhu cầu năng lượng.",
+        initiallyExpanded = true
+    ) {
+        StepperRow(
+            title = "Tuổi",
+            value = preferences.age.toString(),
+            onDecrease = { onAgeChange(preferences.age - 1) },
+            onIncrease = { onAgeChange(preferences.age + 1) }
+        )
+        
+        SectionLabel("Giới tính")
+        SingleChoiceChipRow(
+            options = genderOptions,
+            selectedOption = preferences.gender,
+            onSelect = onGenderChange
+        )
+
+        Spacer(Modifier.height(Spacing.xs))
+        
+        StepperRow(
+            title = "Cân nặng (kg)",
+            value = preferences.weightKg.toString(),
+            onDecrease = { onWeightChange(preferences.weightKg - 0.5f) },
+            onIncrease = { onWeightChange(preferences.weightKg + 0.5f) }
+        )
+        
+        StepperRow(
+            title = "Chiều cao (cm)",
+            value = preferences.heightCm.toString(),
+            onDecrease = { onHeightChange(preferences.heightCm - 1f) },
+            onIncrease = { onHeightChange(preferences.heightCm + 1f) }
+        )
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("BMI", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    String.format("%.1f", preferences.bmi),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Purple400,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Nhu cầu Calo (TDEE)", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    "${preferences.calculateTdee()} kcal",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Teal400,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider()
+        Spacer(Modifier.height(Spacing.sm))
+
+        SectionLabel("Mức độ vận động")
+        SingleChoiceChipRow(
+            options = activityOptions,
+            selectedOption = preferences.activityLevel,
+            onSelect = onActivityLevelChange
+        )
+
+        Spacer(Modifier.height(Spacing.xs))
+
+        SectionLabel("Mục tiêu sức khỏe")
+        SingleChoiceChipRow(
+            options = healthGoalOptions,
+            selectedOption = preferences.healthGoal,
+            onSelect = onHealthGoalChange
+        )
+
+        Spacer(Modifier.height(Spacing.xs))
+
+        SectionLabel("Chế độ ăn")
+        SingleChoiceChipRow(
+            options = dietaryTypeOptions,
+            selectedOption = preferences.dietaryType,
+            onSelect = onDietaryTypeChange
+        )
+    }
+}
+
+@Composable
 private fun CookingProfileCard(
     preferences: UserPreference,
     onLowFatChange: (Boolean) -> Unit,
@@ -332,9 +454,8 @@ private fun CookingProfileCard(
 ) {
     SettingsCard(
         title = "Hồ sơ nấu ăn",
-        subtitle = "SmartSous dùng hồ sơ này để cá nhân hóa gợi ý món và chatbot.",
-        initiallyExpanded = true,
-        collapsible = false
+        subtitle = "Tùy chỉnh các thông số ưu tiên khi gợi ý món ăn.",
+        initiallyExpanded = false
     ) {
         StepperRow(
             title = "Mục tiêu calo mỗi bữa",

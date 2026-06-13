@@ -26,6 +26,7 @@ import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.round
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
@@ -65,12 +66,14 @@ class SettingsViewModel @Inject constructor(
         workManager.getWorkInfosForUniqueWorkLiveData(ExpiryCheckWorker.WORK_NAME)
     private val mealStatusLiveData =
         workManager.getWorkInfosForUniqueWorkLiveData(MealReminderWorker.WORK_NAME)
+    
     private val expiryStatusObserver = Observer<List<WorkInfo>> { workInfos ->
         val status = workInfos?.firstOrNull()?.state?.name ?: "NOT_SCHEDULED"
         _uiState.update { state ->
             state.copy(workerStatuses = state.workerStatuses + ("ExpiryCheck" to status))
         }
     }
+    
     private val mealStatusObserver = Observer<List<WorkInfo>> { workInfos ->
         val status = workInfos?.firstOrNull()?.state?.name ?: "NOT_SCHEDULED"
         _uiState.update { state ->
@@ -151,6 +154,40 @@ class SettingsViewModel @Inject constructor(
         mealStatusLiveData.observeForever(mealStatusObserver)
     }
 
+    // --- Profile Setters ---
+
+    fun setAge(age: Int) {
+        updatePreferences { it.copy(age = age.coerceIn(1, 120)) }
+    }
+
+    fun setGender(gender: String) {
+        updatePreferences { it.copy(gender = gender) }
+    }
+
+    fun setWeight(weight: Float) {
+        val roundedValue = round(weight * 10f) / 10f
+        updatePreferences { it.copy(weightKg = roundedValue.coerceIn(10f, 300f)) }
+    }
+
+    fun setHeight(height: Float) {
+        val roundedValue = round(height * 10f) / 10f
+        updatePreferences { it.copy(heightCm = roundedValue.coerceIn(50f, 250f)) }
+    }
+
+    fun setActivityLevel(level: String) {
+        updatePreferences { it.copy(activityLevel = level) }
+    }
+
+    fun setHealthGoal(goal: String) {
+        updatePreferences { it.copy(healthGoal = goal) }
+    }
+
+    fun setDietaryType(type: String) {
+        updatePreferences { it.copy(dietaryType = type) }
+    }
+
+    // --- Cooking Preferences ---
+
     fun toggleFavoriteCuisine(cuisine: String) {
         updatePreferences {
             it.copy(favoriteCuisines = it.favoriteCuisines.toggleValue(cuisine))
@@ -189,6 +226,8 @@ class SettingsViewModel @Inject constructor(
         updatePreferences { it.copy(maxCookingTimeMinutes = value.coerceIn(10, 180)) }
     }
 
+    // --- AI Settings ---
+
     fun setAiApiKey(key: String) {
         updatePreferences { it.copy(aiApiKey = key) }
     }
@@ -196,6 +235,8 @@ class SettingsViewModel @Inject constructor(
     fun setAiModel(model: String) {
         updatePreferences { it.copy(aiModel = model) }
     }
+
+    // --- Notifications ---
 
     fun setExpiryRemindersEnabled(enabled: Boolean) {
         safeLaunch {
@@ -241,44 +282,41 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
+    // --- Developer Tools ---
+
     fun testExpiryNotification() {
         _uiState.update { it.copy(isTestingExpiry = true) }
-
         val request = OneTimeWorkRequestBuilder<ExpiryCheckWorker>()
             .addTag("test_expiry")
             .build()
-
         workManager.enqueue(request)
         val liveData = workManager.getWorkInfoByIdLiveData(request.id)
         lateinit var observer: Observer<WorkInfo>
         observer = Observer { info ->
-                if (info?.state?.isFinished == true) {
-                    _uiState.update { it.copy(isTestingExpiry = false) }
-                    liveData.removeObserver(observer)
-                }
+            if (info?.state?.isFinished == true) {
+                _uiState.update { it.copy(isTestingExpiry = false) }
+                liveData.removeObserver(observer)
             }
+        }
         liveData.observeForever(observer)
     }
 
     fun testMealReminder() {
         _uiState.update { it.copy(isTestingMeal = true) }
-
         safeLaunch {
             insertTestMealPlanForToday()
-
             val request = OneTimeWorkRequestBuilder<MealReminderWorker>()
                 .addTag("test_meal")
                 .build()
-
             workManager.enqueue(request)
             val liveData = workManager.getWorkInfoByIdLiveData(request.id)
             lateinit var observer: Observer<WorkInfo>
             observer = Observer { info ->
-                    if (info?.state?.isFinished == true) {
-                        _uiState.update { it.copy(isTestingMeal = false) }
-                        liveData.removeObserver(observer)
-                    }
+                if (info?.state?.isFinished == true) {
+                    _uiState.update { it.copy(isTestingMeal = false) }
+                    liveData.removeObserver(observer)
                 }
+            }
             liveData.observeForever(observer)
         }
     }
@@ -310,6 +348,8 @@ class SettingsViewModel @Inject constructor(
             dataStoreManager.resetRecipesSeededFlag()
         }
     }
+
+    // --- Helpers ---
 
     private fun updatePreferences(update: (UserPreference) -> UserPreference) {
         safeLaunch {

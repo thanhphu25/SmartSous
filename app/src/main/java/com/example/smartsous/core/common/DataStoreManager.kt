@@ -6,7 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.smartsous.domain.model.NotificationPreference
@@ -30,6 +32,17 @@ class DataStoreManager @Inject constructor(
     companion object {
         val KEY_RECIPES_SEEDED = booleanPreferencesKey("recipes_seeded")
         val KEY_ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+
+        // Basic Indicators
+        val KEY_AGE = intPreferencesKey("user_age")
+        val KEY_GENDER = stringPreferencesKey("user_gender")
+        val KEY_WEIGHT = floatPreferencesKey("user_weight")
+        val KEY_HEIGHT = floatPreferencesKey("user_height")
+        val KEY_ACTIVITY_LEVEL = stringPreferencesKey("user_activity_level")
+        
+        // Health & Diet Goals
+        val KEY_HEALTH_GOAL = stringPreferencesKey("user_health_goal")
+        val KEY_DIETARY_TYPE = stringPreferencesKey("user_dietary_type")
 
         val KEY_TARGET_CALORIES = intPreferencesKey("target_calories")
         val KEY_FAVORITE_CUISINES = stringSetPreferencesKey("favorite_cuisines")
@@ -90,6 +103,14 @@ class DataStoreManager @Inject constructor(
         context.dataStore.edit { prefs ->
             val updated = update(prefs.toUserPreference())
 
+            prefs[KEY_AGE] = updated.age
+            prefs[KEY_GENDER] = updated.gender
+            prefs[KEY_WEIGHT] = updated.weightKg
+            prefs[KEY_HEIGHT] = updated.heightCm
+            prefs[KEY_ACTIVITY_LEVEL] = updated.activityLevel
+            prefs[KEY_HEALTH_GOAL] = updated.healthGoal
+            prefs[KEY_DIETARY_TYPE] = updated.dietaryType
+
             prefs[KEY_TARGET_CALORIES] = updated.targetCaloriesPerMeal
             prefs[KEY_FAVORITE_CUISINES] = updated.favoriteCuisines.toSet()
             prefs[KEY_DISLIKED_INGREDIENTS] = updated.dislikedIngredients.toSet()
@@ -131,6 +152,13 @@ class DataStoreManager @Inject constructor(
 
     private fun Preferences.toUserPreference(): UserPreference =
         UserPreference(
+            age = this[KEY_AGE] ?: 25,
+            gender = this[KEY_GENDER] ?: "Nam",
+            weightKg = this[KEY_WEIGHT] ?: 65f,
+            heightCm = this[KEY_HEIGHT] ?: 170f,
+            activityLevel = this[KEY_ACTIVITY_LEVEL] ?: "Vừa",
+            healthGoal = this[KEY_HEALTH_GOAL] ?: "Duy trì sức khỏe",
+            dietaryType = this[KEY_DIETARY_TYPE] ?: "Không có yêu cầu",
             targetCaloriesPerMeal = this[KEY_TARGET_CALORIES] ?: 400,
             favoriteCuisines = this[KEY_FAVORITE_CUISINES]?.toList() ?: emptyList(),
             dislikedIngredients = this[KEY_DISLIKED_INGREDIENTS]?.toList() ?: emptyList(),

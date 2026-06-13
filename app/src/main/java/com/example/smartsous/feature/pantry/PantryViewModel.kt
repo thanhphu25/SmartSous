@@ -165,8 +165,14 @@ class PantryViewModel @Inject constructor(
         }
     }
 
-    fun openAddSheetWithName(name: String) {
-        _formState.value = IngredientFormState(name = name)
+    fun openAddSheetWithName(
+        name: String,
+        category: IngredientCategory = IngredientCategory.OTHER
+    ) {
+        _formState.value = IngredientFormState(
+            name = name,
+            category = category
+        )
         _showAddEditSheet.value = true
     }
 }

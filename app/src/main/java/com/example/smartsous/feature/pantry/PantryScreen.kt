@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Warning
@@ -83,10 +84,12 @@ private val categoryFilters = listOf(
 fun PantryScreen(
     modifier: Modifier = Modifier,
     onNavigateToScan: () -> Unit = {},
+    onNavigateToIngredientScan: () -> Unit = {},
     viewModel: PantryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var ingredientPendingDelete by remember { mutableStateOf<Ingredient?>(null) }
+    var showCameraChoiceDialog by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -108,10 +111,10 @@ fun PantryScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = onNavigateToScan) {
+                    IconButton(onClick = { showCameraChoiceDialog = true }) {
                         Icon(
-                            Icons.Default.QrCodeScanner,
-                            contentDescription = "Quét barcode",
+                            Icons.Default.CameraAlt,
+                            contentDescription = "Thêm bằng camera",
                             tint = Purple400
                         )
                     }
@@ -301,6 +304,50 @@ fun PantryScreen(
                 dismissButton = {
                     TextButton(onClick = { ingredientPendingDelete = null }) {
                         Text("Hủy")
+                    }
+                }
+            )
+        }
+
+        if (showCameraChoiceDialog) {
+            AlertDialog(
+                onDismissRequest = { showCameraChoiceDialog = false },
+                title = { Text("Thêm bằng camera") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text(
+                            "Chọn cách SmartSous nhận diện nguyên liệu để điền nhanh vào tủ lạnh.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(
+                            onClick = {
+                                showCameraChoiceDialog = false
+                                onNavigateToScan()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text("Quét barcode sản phẩm")
+                        }
+                        TextButton(
+                            onClick = {
+                                showCameraChoiceDialog = false
+                                onNavigateToIngredientScan()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null)
+                            Spacer(Modifier.size(8.dp))
+                            Text("Nhận diện nguyên liệu bằng ảnh")
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showCameraChoiceDialog = false }) {
+                        Text("Đóng")
                     }
                 }
             )

@@ -19,8 +19,10 @@ import com.example.smartsous.feature.recipedetail.RecipeDetailScreen
 import com.example.smartsous.feature.search.SearchScreen
 import com.example.smartsous.feature.favorites.FavoritesScreen
 import com.example.smartsous.feature.pantry.BarcodeScanScreen
+import com.example.smartsous.feature.pantry.IngredientScanScreen
 import com.example.smartsous.feature.pantry.PantryViewModel
 import com.example.smartsous.feature.settings.SettingsScreen
+import com.example.smartsous.domain.model.IngredientCategory
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
@@ -100,17 +102,26 @@ fun AppNavGraph(
             val scannedName = navController.currentBackStackEntry
                 ?.savedStateHandle
                 ?.get<String>("scanned_name")
+            val scannedCategory = navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("scanned_category")
 
             val pantryViewModel: PantryViewModel = hiltViewModel()
 
             // Nếu có kết quả scan → tự mở sheet với tên đã điền
             LaunchedEffect(scannedName) {
                 scannedName?.let { name ->
-                    pantryViewModel.openAddSheetWithName(name)
+                    val category = scannedCategory
+                        ?.let { runCatching { IngredientCategory.valueOf(it) }.getOrNull() }
+                        ?: IngredientCategory.OTHER
+                    pantryViewModel.openAddSheetWithName(name, category)
                     // Xoá sau khi đọc
                     navController.currentBackStackEntry
                         ?.savedStateHandle
                         ?.remove<String>("scanned_name")
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<String>("scanned_category")
                 }
             }
 
@@ -118,6 +129,9 @@ fun AppNavGraph(
                 //modifier = modifier,
                 onNavigateToScan = {
                     navController.navigate("barcode_scan")
+                },
+                onNavigateToIngredientScan = {
+                    navController.navigate("ingredient_scan")
                 },
                 viewModel = pantryViewModel
             )
@@ -164,6 +178,24 @@ fun AppNavGraph(
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set("scanned_name", productName)
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("scanned_category", IngredientCategory.OTHER.name)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("ingredient_scan") {
+            IngredientScanScreen(
+                onIngredientDetected = { ingredientName, category ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("scanned_name", ingredientName)
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("scanned_category", category.name)
                     navController.popBackStack()
                 },
                 onBack = { navController.popBackStack() }

@@ -9,6 +9,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.compose.ui.platform.LocalContext
+import com.example.smartsous.core.utils.BubbleHelper
 import com.example.smartsous.feature.chatbot.ChatScreen
 import com.example.smartsous.feature.home.HomeScreen
 import com.example.smartsous.feature.onboarding.OnboardingScreen
@@ -135,9 +137,14 @@ fun AppNavGraph(
         }
 
         composable("chat") {
+            val context = LocalContext.current
             ChatScreen(
                 onRecipeClick = { recipeId ->
                     navController.navigate("recipe/$recipeId")
+                },
+                onPopOut = {
+                    BubbleHelper.showChatBubble(context)
+                    navController.popBackStack()
                 },
                 onBack = { navController.popBackStack() }
             )

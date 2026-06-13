@@ -33,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
@@ -83,15 +84,20 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import com.example.smartsous.core.ui.components.MarkdownText
 import com.example.smartsous.core.ui.components.parseMarkdown
+import com.example.smartsous.core.utils.BubbleHelper
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
+    isBubble: Boolean = false,
     onRecipeClick: (String) -> Unit = {},
+    onPopOut: () -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
@@ -107,6 +113,13 @@ fun ChatScreen(
         if (count > 0) listState.animateScrollToItem(count - 1)
     }
 
+    if (!isBubble) {
+        val context = LocalContext.current
+        LaunchedEffect(Unit) {
+            BubbleHelper.dismissChatBubble(context)
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -118,12 +131,16 @@ fun ChatScreen(
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Icon mũi tên quay lại
-                    contentDescription = "Quay lại",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
+            if (!isBubble) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Icon mũi tên quay lại
+                        contentDescription = "Quay lại",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            } else {
+                Spacer(Modifier.width(8.dp))
             }
             Text(
                 text = "Trợ lý AI SmartSous",
@@ -132,6 +149,25 @@ fun ChatScreen(
                 modifier = Modifier.padding(start = 8.dp)
             )
             Spacer(Modifier.weight(1f))
+            if (!isBubble) {
+                TextButton(
+                    onClick = onPopOut,
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChatBubble,
+                        contentDescription = "Mở dạng bong bóng",
+                        modifier = Modifier.size(16.dp),
+                        tint = Purple400
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "Bong bóng",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Purple400
+                    )
+                }
+            }
             IconButton(onClick = { showHistoryDialog = true }) {
                 Icon(
                     imageVector = Icons.Default.History,

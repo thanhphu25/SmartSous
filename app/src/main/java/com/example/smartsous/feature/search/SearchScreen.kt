@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -296,106 +297,150 @@ private fun SearchStartContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Icon(
-            Icons.Default.Search,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = Purple400.copy(alpha = 0.75f)
-        )
-        Spacer(Modifier.height(Spacing.sm))
+        // Decorative Header
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier
+                .size(80.dp)
+                .background(
+                    color = Purple400.copy(alpha = 0.1f),
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Search,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = Purple400
+            )
+        }
+        
+        Spacer(Modifier.height(Spacing.md))
         Text(
-            text = "Tìm kiếm món ăn",
-            style = MaterialTheme.typography.titleMedium,
+            text = "Khám phá món ngon",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            text = "Chọn gợi ý bên dưới hoặc nhập tên món",
+            text = "Nhập tên món hoặc chọn gợi ý bên dưới",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(Spacing.lg))
+        Spacer(Modifier.height(Spacing.xl))
 
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(enabled = false) {},
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
-            Column(modifier = Modifier.padding(Spacing.md)) {
-                QuickSearchSection(
-                    title = "Từ khóa thịnh hành",
-                    chips = listOf("Cá hồi", "Thịt bò", "Gà", "Tôm"),
-                    onChipClick = onQuerySelect
+            Column(modifier = Modifier.padding(Spacing.lg)) {
+                Text(
+                    text = "🔥 Từ khóa thịnh hành",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-
-                Spacer(Modifier.height(Spacing.md))
-
-                QuickSearchSection(
-                    title = "Danh mục hot",
-                    chips = listOf("Món canh", "Món chay", "Dưới 30 phút", "Giảm cân"),
-                    onChipClick = { label ->
-                        when (label) {
-                            "Món canh" -> onQuerySelect("Canh")
-                            "Món chay" -> onQuerySelect("Chay")
-                            "Dưới 30 phút" -> onCookingTimeSelect(30)
-                            "Giảm cân" -> onCaloriesSelect(300)
-                            else -> onQuerySelect(label)
+                Spacer(Modifier.height(Spacing.sm))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    listOf("Cá hồi", "Thịt bò", "Gà", "Tôm", "Đậu hũ").forEach { chip ->
+                        androidx.compose.material3.Surface(
+                            onClick = { onQuerySelect(chip) },
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = chip,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
+                }
+
+                Spacer(Modifier.height(Spacing.xl))
+
+                Text(
+                    text = "🌟 Danh mục nổi bật",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(Modifier.height(Spacing.md))
+                
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        CategoryCard(
+                            title = "Món Canh", emoji = "🍲",
+                            modifier = Modifier.weight(1f),
+                            onClick = { onQuerySelect("Canh") }
+                        )
+                        CategoryCard(
+                            title = "Ăn Chay", emoji = "🥗",
+                            modifier = Modifier.weight(1f),
+                            onClick = { onQuerySelect("Chay") }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        CategoryCard(
+                            title = "Nấu Nhanh", emoji = "⏱️",
+                            modifier = Modifier.weight(1f),
+                            onClick = { onCookingTimeSelect(30) }
+                        )
+                        CategoryCard(
+                            title = "Giảm Cân", emoji = "🏃‍♀️",
+                            modifier = Modifier.weight(1f),
+                            onClick = { onCaloriesSelect(400) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun QuickSearchSection(
+private fun CategoryCard(
     title: String,
-    chips: List<String>,
-    onChipClick: (String) -> Unit
-) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.fillMaxWidth()
-    )
-    Spacer(Modifier.height(Spacing.xs))
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        chips.forEach { chip ->
-            QuickSearchChip(label = chip) {
-                onChipClick(chip)
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuickSearchChip(
-    label: String,
+    emoji: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    FilterChip(
-        selected = false,
+    androidx.compose.material3.Surface(
         onClick = onClick,
-        label = {
-            Text(label, style = MaterialTheme.typography.labelMedium)
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            labelColor = MaterialTheme.colorScheme.onSurface
-        )
-    )
+        shape = RoundedCornerShape(16.dp),
+        color = Purple400.copy(alpha = 0.05f),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = emoji, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.width(Spacing.sm))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                color = Purple400
+            )
+        }
+    }
 }
 
 // Chip hiện filter đang active — bấm X để xoá filter đó
